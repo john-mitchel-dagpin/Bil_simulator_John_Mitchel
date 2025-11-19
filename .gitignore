@@ -1,0 +1,8 @@
+/build/
+/cmake-build-*/
+*.exe
+*.dll
+*.so
+*.dylib
+.vscode/
+.idea/
