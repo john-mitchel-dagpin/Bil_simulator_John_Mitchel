@@ -41,11 +41,14 @@ int main() {
 
     // --- Window / canvas ---
     Canvas::Parameters params;
-    params.title("Bilsimulator").size(1280, 720).antialiasing(4);
+    params.title("Bilsimulator")
+          .size(1280, 720)
+          .resizable(true)
+          .antialiasing(4);
 
     Canvas canvas(params);
 
-    // --- Renderer (old API: takes size only) ---
+    // --- Renderer ---
     GLRenderer renderer(canvas.size());
     renderer.setClearColor(Color(0x202020));
 
@@ -59,7 +62,15 @@ int main() {
 
     float camDistance = 15.f;
     float camHeight   = 8.f;
-    float camSmooth   = 0.1f; // 0 = instant snap, closer to 1 = slower movement
+    float camSmooth   = 0.1f;
+
+    canvas.onWindowResize([&](WindowSize size) {
+        camera.aspect = float(size.width()) / float(size.height());
+        camera.updateProjectionMatrix();
+        renderer.setSize(size);
+
+    });
+
 
     // --- Lighting ---
     auto light = DirectionalLight::create(0xffffff, 1.0f);
@@ -74,7 +85,7 @@ int main() {
     ground->rotation.x = -math::PI / 2;
     scene.add(ground);
 
-    // --- Car body mesh ---
+    // --- Car body ---
     auto carMesh = Mesh::create(
         BoxGeometry::create(2, 1, 4),
         MeshPhongMaterial::create({{"color", 0xff0000}})
@@ -82,53 +93,50 @@ int main() {
     carMesh->position.y = 0.5f;
     scene.add(carMesh);
 
+    // ================================
+    //          🔧 WHEELS
+    // ================================
 
-    //                  WHEEL SETUP
-    // =====================================================
+    auto tireGeo = CylinderGeometry::create(0.5f, 0.5f, 0.4f, 24);
+    tireGeo->rotateZ(math::PI / 2);
 
-    auto wheelMaterial = MeshPhongMaterial::create({{"color", 0x111111}});
-    auto wheelGeo = CylinderGeometry::create(0.4f, 0.4f, 0.3f, 16);
+    auto rimGeo = CylinderGeometry::create(0.3f, 0.3f, 0.45f, 12);
+    rimGeo->rotateZ(math::PI / 2);
 
-    // Front Left wheel (local space relative to carMesh)
-    auto frontLeftWheel = Mesh::create(wheelGeo, wheelMaterial);
-    frontLeftWheel->rotation.z = math::PI / 2; // lay the wheel on its side
-    frontLeftWheel->position.set(-1.1f, 0.4f, 1.5f);
-    carMesh->add(frontLeftWheel);
+    auto tireMat = MeshPhongMaterial::create({{"color", 0x111111}});
+    auto rimMat  = MeshPhongMaterial::create({{"color", 0xffffff}});
 
-    // Front Right wheel
-    auto frontRightWheel = Mesh::create(wheelGeo, wheelMaterial);
-    frontRightWheel->rotation.z = math::PI / 2;
-    frontRightWheel->position.set(1.1f, 0.4f, 1.5f);
-    carMesh->add(frontRightWheel);
-
-    // Rear Left wheel
-    auto rearLeftWheel = Mesh::create(wheelGeo, wheelMaterial);
-    rearLeftWheel->rotation.z = math::PI / 2;
-    rearLeftWheel->position.set(-1.1f, 0.4f, -1.5f);
-    carMesh->add(rearLeftWheel);
-
-    // Rear Right wheel
-    auto rearRightWheel = Mesh::create(wheelGeo, wheelMaterial);
-    rearRightWheel->rotation.z = math::PI / 2;
-    rearRightWheel->position.set(1.1f, 0.4f, -1.5f);
-    carMesh->add(rearRightWheel);
-
-    std::vector<std::shared_ptr<Mesh>> allWheels = {
-        frontLeftWheel, frontRightWheel, rearLeftWheel, rearRightWheel
+    auto makeWheel = [&]() {
+        auto group = Group::create();
+        auto tire = Mesh::create(tireGeo, tireMat);
+        auto rim  = Mesh::create(rimGeo, rimMat);
+        group->add(tire);
+        group->add(rim);
+        return group;
     };
 
-    // Steering + spin state
-    float steerAngle = 0.f;
-    const float maxSteerAngle = math::PI / 6; // 30 degrees
-    const float steerSmooth   = 0.15f;
+    float wheelY = 0.0f;
+    float wheelX = 1.1f;
+    float wheelZ = 1.6f;
 
-    float wheelRotation = 0.f;
-    const float wheelSpinFactor = 5.f; // tweak if too fast/slow
+    auto wheelFL = makeWheel();
+    auto wheelFR = makeWheel();
+    auto wheelRL = makeWheel();
+    auto wheelRR = makeWheel();
 
+    wheelFL->position.set(-wheelX, wheelY,  wheelZ);
+    wheelFR->position.set( wheelX, wheelY,  wheelZ);
+    wheelRL->position.set(-wheelX, wheelY, -wheelZ);
+    wheelRR->position.set( wheelX, wheelY, -wheelZ);
 
-    //                  GAME LOGIC
-    // =====================================================
+    carMesh->add(wheelFL);
+    carMesh->add(wheelFR);
+    carMesh->add(wheelRL);
+    carMesh->add(wheelRR);
 
+    std::vector<std::shared_ptr<Group>> wheels = {wheelFL, wheelFR, wheelRL, wheelRR};
+
+    // --- Game logic ---
     Game game;
     InputState input;
 
@@ -142,7 +150,6 @@ int main() {
         auto obstacle = dynamic_cast<Obstacle*>(obj.get());
 
         if (pickup) {
-            // create a green sphere for pickups
             auto mesh = Mesh::create(
                 SphereGeometry::create(0.8f, 16, 16),
                 MeshPhongMaterial::create({{"color", 0x00ff00}})
@@ -157,7 +164,6 @@ int main() {
             objectMeshes.push_back(mesh);
 
         } else if (obstacle) {
-            // create a blue box for obstacles
             auto b = obstacle->bounds();
             float cx = (b.minX + b.maxX) * 0.5f;
             float cz = (b.minZ + b.maxZ) * 0.5f;
@@ -168,9 +174,11 @@ int main() {
                 BoxGeometry::create(width, 2.f, length),
                 MeshPhongMaterial::create({{"color", 0x3333ff}})
             );
+
             mesh->position.set(cx, 1.f, cz);
             scene.add(mesh);
             objectMeshes.push_back(mesh);
+
         } else {
             objectMeshes.push_back(nullptr);
         }
@@ -180,48 +188,40 @@ int main() {
     KeyHandler handler(input, game);
     canvas.addKeyListener(handler);
 
-    // --- Main loop (no dt parameter in this threepp version) ---
+    // ================================
+    //       MAIN GAME LOOP
+    // ================================
+
     canvas.animate([&]() {
 
-        float dt = 1.f / 60.f; // fixed timestep
+        float dt = 1.f / 60.f;
         game.update(dt, input);
 
-        // --- Sync car mesh with logic ---
         const auto& car = game.world().car();
+
+        // --- Sync car mesh ---
         carMesh->position.x = car.position().x;
         carMesh->position.z = car.position().z;
         carMesh->rotation.y = car.rotation();
+
         float s = car.getVisualScale();
         carMesh->scale.set(s, s, s);
 
-
-        //        WHEEL SPIN + STEERING ANIMATION
-        // =====================================================
-
-        // Steering angle based on input
-        float targetSteer = 0.f;
-        if (input.turnLeft) {
-            targetSteer = maxSteerAngle;
-        } else if (input.turnRight) {
-            targetSteer = -maxSteerAngle;
+        // --- Wheel spinning ---
+        float spin = car.speed() * dt * 7.0f;
+        for (auto& w : wheels) {
+            w->rotation.x += spin;
         }
 
-        steerAngle += (targetSteer - steerAngle) * steerSmooth;
+        // --- Steering wheels ---
+        float steer = 0.f;
+        if (input.turnLeft)  steer = 0.5f;
+        if (input.turnRight) steer = -0.5f;
 
-        // Apply steering to front wheels only
-        frontLeftWheel->rotation.y = steerAngle;
-        frontRightWheel->rotation.y = steerAngle;
+        wheelFL->rotation.y = steer;
+        wheelFR->rotation.y = steer;
 
-        // Spin wheels based on car speed
-        wheelRotation += car.speed() * dt * wheelSpinFactor;
-
-        for (auto& w : allWheels) {
-            // base orientation already rotated around Z in setup
-            w->rotation.x = wheelRotation;
-        }
-
-
-
+        // --- Chase camera ---
         float fx = std::sin(car.rotation());
         float fz = std::cos(car.rotation());
 
@@ -234,11 +234,10 @@ int main() {
         camera.position.lerp(desiredPos, camSmooth);
         camera.lookAt({car.position().x, 0.f, car.position().z});
 
-        // --- Update pickup visibility (hide collected ones) ---
+        // --- Update pickups visibility ---
         const auto& objects = game.world().objects();
         for (std::size_t i = 0; i < objects.size(); ++i) {
             if (!objectMeshes[i]) continue;
-
             auto pickup = dynamic_cast<Pickup*>(objects[i].get());
             if (pickup && !pickup->isActive()) {
                 objectMeshes[i]->visible = false;
