@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <memory>
+#include <algorithm> // for std::clamp, std::min
 
 using namespace threepp;
 
@@ -64,13 +65,12 @@ int main() {
     float camHeight   = 8.f;
     float camSmooth   = 0.1f;
 
+    // --- Resize handling ---
     canvas.onWindowResize([&](WindowSize size) {
         camera.aspect = float(size.width()) / float(size.height());
         camera.updateProjectionMatrix();
         renderer.setSize(size);
-
     });
-
 
     // --- Lighting ---
     auto light = DirectionalLight::create(0xffffff, 1.0f);
@@ -94,9 +94,8 @@ int main() {
     scene.add(carMesh);
 
     // ================================
-    //          🔧 WHEELS
+    //          WHEELS
     // ================================
-
     auto tireGeo = CylinderGeometry::create(0.5f, 0.5f, 0.4f, 24);
     tireGeo->rotateZ(math::PI / 2);
 
@@ -136,7 +135,32 @@ int main() {
 
     std::vector<std::shared_ptr<Group>> wheels = {wheelFL, wheelFR, wheelRL, wheelRR};
 
-    // --- Game logic ---
+    // Steering state
+    float steeringAngle = 0.f;
+    const float maxSteerAngle     = 0.6f;  // ~34 degrees
+    const float steerSpeed        = 3.0f;  // how fast it turns when key held
+    const float steerReturnSpeed  = 4.0f;  // how fast it auto-centers
+
+    float wheelRotation = 0.f;
+    const float wheelSpinFactor = 7.f;
+
+    // ================================
+    //          DOOR / GATE
+    // ================================
+    auto doorMesh = Mesh::create(
+        BoxGeometry::create(4.f, 4.f, 0.5f),
+        MeshPhongMaterial::create({{"color", 0x888800}})
+    );
+    doorMesh->position.set(0.f, 2.f, 12.f); // centered on z=12 (same as gate obstacle)
+    scene.add(doorMesh);
+
+    float doorBaseY = doorMesh->position.y;
+    float doorOpenAmount = 0.f;      // 0 = closed, 1 = fully open
+    const float doorOpenSpeed = 1.0f; // units per second of "openness"
+
+    // ================================
+    //          GAME LOGIC
+    // ================================
     Game game;
     InputState input;
 
@@ -189,9 +213,8 @@ int main() {
     canvas.addKeyListener(handler);
 
     // ================================
-    //       MAIN GAME LOOP
+    //          MAIN LOOP
     // ================================
-
     canvas.animate([&]() {
 
         float dt = 1.f / 60.f;
@@ -207,19 +230,40 @@ int main() {
         float s = car.getVisualScale();
         carMesh->scale.set(s, s, s);
 
-        // --- Wheel spinning ---
-        float spin = car.speed() * dt * 7.0f;
+        // --- Steering: smooth + auto-center ---
+        float target = 0.f;
+        if (input.turnLeft)  target =  maxSteerAngle;
+        if (input.turnRight) target = -maxSteerAngle;
+
+        if (input.turnLeft || input.turnRight) {
+            // turn towards target
+            if (steeringAngle < target) {
+                steeringAngle += steerSpeed * dt;
+            } else if (steeringAngle > target) {
+                steeringAngle -= steerSpeed * dt;
+            }
+        } else {
+            // auto-center
+            if (steeringAngle > 0) {
+                steeringAngle = std::max(0.f, steeringAngle - steerReturnSpeed * dt);
+            } else if (steeringAngle < 0) {
+                steeringAngle = std::min(0.f, steeringAngle + steerReturnSpeed * dt);
+            }
+        }
+
+        steeringAngle = std::clamp(steeringAngle, -maxSteerAngle, maxSteerAngle);
+
+        // Apply steering to front wheels
+        wheelFL->rotation.y = steeringAngle;
+        wheelFR->rotation.y = steeringAngle;
+
+        // --- Wheel spinning based on speed ---
+        float spin = car.speed() * dt * wheelSpinFactor;
+        wheelRotation += spin;
+
         for (auto& w : wheels) {
             w->rotation.x += spin;
         }
-
-        // --- Steering wheels ---
-        float steer = 0.f;
-        if (input.turnLeft)  steer = 0.5f;
-        if (input.turnRight) steer = -0.5f;
-
-        wheelFL->rotation.y = steer;
-        wheelFR->rotation.y = steer;
 
         // --- Chase camera ---
         float fx = std::sin(car.rotation());
@@ -233,6 +277,12 @@ int main() {
 
         camera.position.lerp(desiredPos, camSmooth);
         camera.lookAt({car.position().x, 0.f, car.position().z});
+
+        // --- Door opening animation ---
+        if (game.world().allPickupsCollected() && doorOpenAmount < 1.f) {
+            doorOpenAmount = std::min(1.f, doorOpenAmount + doorOpenSpeed * dt);
+        }
+        doorMesh->position.y = doorBaseY + doorOpenAmount * 5.f; // slide door upwards
 
         // --- Update pickups visibility ---
         const auto& objects = game.world().objects();
