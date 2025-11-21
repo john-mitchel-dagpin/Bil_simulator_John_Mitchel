@@ -94,7 +94,7 @@ int main() {
     scene.add(carMesh);
 
     // ================================
-    //          WHEELS
+    //          WHEELS (hierarchy)
     // ================================
     auto tireGeo = CylinderGeometry::create(0.5f, 0.5f, 0.4f, 24);
     tireGeo->rotateZ(math::PI / 2);
@@ -105,43 +105,50 @@ int main() {
     auto tireMat = MeshPhongMaterial::create({{"color", 0x111111}});
     auto rimMat  = MeshPhongMaterial::create({{"color", 0xffffff}});
 
-    auto makeWheel = [&]() {
-        auto group = Group::create();
+    // Visual wheel (tire + rim) grouped together
+    auto makeWheelVisual = [&]() {
+        auto visual = Group::create();
         auto tire = Mesh::create(tireGeo, tireMat);
         auto rim  = Mesh::create(rimGeo, rimMat);
-        group->add(tire);
-        group->add(rim);
-        return group;
+        visual->add(tire);
+        visual->add(rim);
+        return visual;
     };
 
     float wheelY = 0.0f;
     float wheelX = 1.1f;
     float wheelZ = 1.6f;
 
-    auto wheelFL = makeWheel();
-    auto wheelFR = makeWheel();
-    auto wheelRL = makeWheel();
-    auto wheelRR = makeWheel();
+    // Front: steering group -> visual (spinning) group
+    auto flSteer = Group::create();
+    auto flVisual = makeWheelVisual();
+    flSteer->add(flVisual);
+    flSteer->position.set(-wheelX, wheelY, wheelZ);
+    carMesh->add(flSteer);
 
-    wheelFL->position.set(-wheelX, wheelY,  wheelZ);
-    wheelFR->position.set( wheelX, wheelY,  wheelZ);
-    wheelRL->position.set(-wheelX, wheelY, -wheelZ);
-    wheelRR->position.set( wheelX, wheelY, -wheelZ);
+    auto frSteer = Group::create();
+    auto frVisual = makeWheelVisual();
+    frSteer->add(frVisual);
+    frSteer->position.set(wheelX, wheelY, wheelZ);
+    carMesh->add(frSteer);
 
-    carMesh->add(wheelFL);
-    carMesh->add(wheelFR);
-    carMesh->add(wheelRL);
-    carMesh->add(wheelRR);
+    // Rear: only visual (no steering)
+    auto rlVisual = makeWheelVisual();
+    rlVisual->position.set(-wheelX, wheelY, -wheelZ);
+    carMesh->add(rlVisual);
 
-    std::vector<std::shared_ptr<Group>> wheels = {wheelFL, wheelFR, wheelRL, wheelRR};
+    auto rrVisual = makeWheelVisual();
+    rrVisual->position.set(wheelX, wheelY, -wheelZ);
+    carMesh->add(rrVisual);
 
-    // Steering state
+    // Wheels that spin
+    std::vector<std::shared_ptr<Group>> spinWheels = {flVisual, frVisual, rlVisual, rrVisual};
+
+    // Steering state (just for front steer groups)
     float steeringAngle = 0.f;
-    const float maxSteerAngle     = 0.6f;  // ~34 degrees
-    const float steerSpeed        = 3.0f;  // how fast it turns when key held
-    const float steerReturnSpeed  = 4.0f;  // how fast it auto-centers
+    const float maxSteerAngle = 0.45f;   // ~25 degrees
+    const float steerLerp     = 0.25f;   // smoothing factor [0..1]
 
-    float wheelRotation = 0.f;
     const float wheelSpinFactor = 7.f;
 
     // ================================
@@ -151,12 +158,12 @@ int main() {
         BoxGeometry::create(4.f, 4.f, 0.5f),
         MeshPhongMaterial::create({{"color", 0x888800}})
     );
-    doorMesh->position.set(0.f, 2.f, 12.f); // centered on z=12 (same as gate obstacle)
+    doorMesh->position.set(0.f, 2.f, 12.f); // same z as gate obstacle
     scene.add(doorMesh);
 
     float doorBaseY = doorMesh->position.y;
     float doorOpenAmount = 0.f;      // 0 = closed, 1 = fully open
-    const float doorOpenSpeed = 1.0f; // units per second of "openness"
+    const float doorOpenSpeed = 1.0f;
 
     // ================================
     //          GAME LOGIC
@@ -230,38 +237,21 @@ int main() {
         float s = car.getVisualScale();
         carMesh->scale.set(s, s, s);
 
-        // --- Steering: smooth + auto-center ---
-        float target = 0.f;
-        if (input.turnLeft)  target =  maxSteerAngle;
-        if (input.turnRight) target = -maxSteerAngle;
+        // --- Simple, stable steering (A/D → left/right) ---
+        float targetSteer = 0.f;
+        if (input.turnLeft)  targetSteer =  maxSteerAngle;
+        if (input.turnRight) targetSteer = -maxSteerAngle;
 
-        if (input.turnLeft || input.turnRight) {
-            // turn towards target
-            if (steeringAngle < target) {
-                steeringAngle += steerSpeed * dt;
-            } else if (steeringAngle > target) {
-                steeringAngle -= steerSpeed * dt;
-            }
-        } else {
-            // auto-center
-            if (steeringAngle > 0) {
-                steeringAngle = std::max(0.f, steeringAngle - steerReturnSpeed * dt);
-            } else if (steeringAngle < 0) {
-                steeringAngle = std::min(0.f, steeringAngle + steerReturnSpeed * dt);
-            }
-        }
+        // Smooth towards target but no weird overshoot
+        steeringAngle += (targetSteer - steeringAngle) * steerLerp;
 
-        steeringAngle = std::clamp(steeringAngle, -maxSteerAngle, maxSteerAngle);
+        // Apply to front steer groups ONLY
+        flSteer->rotation.y = steeringAngle;
+        frSteer->rotation.y = steeringAngle;
 
-        // Apply steering to front wheels
-        wheelFL->rotation.y = steeringAngle;
-        wheelFR->rotation.y = steeringAngle;
-
-        // --- Wheel spinning based on speed ---
+        // --- Wheel spinning (spin only visual groups) ---
         float spin = car.speed() * dt * wheelSpinFactor;
-        wheelRotation += spin;
-
-        for (auto& w : wheels) {
+        for (auto& w : spinWheels) {
             w->rotation.x += spin;
         }
 
@@ -282,7 +272,7 @@ int main() {
         if (game.world().allPickupsCollected() && doorOpenAmount < 1.f) {
             doorOpenAmount = std::min(1.f, doorOpenAmount + doorOpenSpeed * dt);
         }
-        doorMesh->position.y = doorBaseY + doorOpenAmount * 5.f; // slide door upwards
+        doorMesh->position.y = doorBaseY + doorOpenAmount * 5.f;
 
         // --- Update pickups visibility ---
         const auto& objects = game.world().objects();
