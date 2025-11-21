@@ -74,7 +74,7 @@ int main() {
     ground->rotation.x = -math::PI / 2;
     scene.add(ground);
 
-    // --- Car mesh ---
+    // --- Car body mesh ---
     auto carMesh = Mesh::create(
         BoxGeometry::create(2, 1, 4),
         MeshPhongMaterial::create({{"color", 0xff0000}})
@@ -82,7 +82,53 @@ int main() {
     carMesh->position.y = 0.5f;
     scene.add(carMesh);
 
-    // --- Game logic ---
+
+    //                  WHEEL SETUP
+    // =====================================================
+
+    auto wheelMaterial = MeshPhongMaterial::create({{"color", 0x111111}});
+    auto wheelGeo = CylinderGeometry::create(0.4f, 0.4f, 0.3f, 16);
+
+    // Front Left wheel (local space relative to carMesh)
+    auto frontLeftWheel = Mesh::create(wheelGeo, wheelMaterial);
+    frontLeftWheel->rotation.z = math::PI / 2; // lay the wheel on its side
+    frontLeftWheel->position.set(-1.1f, 0.4f, 1.5f);
+    carMesh->add(frontLeftWheel);
+
+    // Front Right wheel
+    auto frontRightWheel = Mesh::create(wheelGeo, wheelMaterial);
+    frontRightWheel->rotation.z = math::PI / 2;
+    frontRightWheel->position.set(1.1f, 0.4f, 1.5f);
+    carMesh->add(frontRightWheel);
+
+    // Rear Left wheel
+    auto rearLeftWheel = Mesh::create(wheelGeo, wheelMaterial);
+    rearLeftWheel->rotation.z = math::PI / 2;
+    rearLeftWheel->position.set(-1.1f, 0.4f, -1.5f);
+    carMesh->add(rearLeftWheel);
+
+    // Rear Right wheel
+    auto rearRightWheel = Mesh::create(wheelGeo, wheelMaterial);
+    rearRightWheel->rotation.z = math::PI / 2;
+    rearRightWheel->position.set(1.1f, 0.4f, -1.5f);
+    carMesh->add(rearRightWheel);
+
+    std::vector<std::shared_ptr<Mesh>> allWheels = {
+        frontLeftWheel, frontRightWheel, rearLeftWheel, rearRightWheel
+    };
+
+    // Steering + spin state
+    float steerAngle = 0.f;
+    const float maxSteerAngle = math::PI / 6; // 30 degrees
+    const float steerSmooth   = 0.15f;
+
+    float wheelRotation = 0.f;
+    const float wheelSpinFactor = 5.f; // tweak if too fast/slow
+
+
+    //                  GAME LOGIC
+    // =====================================================
+
     Game game;
     InputState input;
 
@@ -149,7 +195,33 @@ int main() {
         carMesh->scale.set(s, s, s);
 
 
-        // --- Chase camera logic ---
+        //        WHEEL SPIN + STEERING ANIMATION
+        // =====================================================
+
+        // Steering angle based on input
+        float targetSteer = 0.f;
+        if (input.turnLeft) {
+            targetSteer = maxSteerAngle;
+        } else if (input.turnRight) {
+            targetSteer = -maxSteerAngle;
+        }
+
+        steerAngle += (targetSteer - steerAngle) * steerSmooth;
+
+        // Apply steering to front wheels only
+        frontLeftWheel->rotation.y = steerAngle;
+        frontRightWheel->rotation.y = steerAngle;
+
+        // Spin wheels based on car speed
+        wheelRotation += car.speed() * dt * wheelSpinFactor;
+
+        for (auto& w : allWheels) {
+            // base orientation already rotated around Z in setup
+            w->rotation.x = wheelRotation;
+        }
+
+
+
         float fx = std::sin(car.rotation());
         float fz = std::cos(car.rotation());
 
