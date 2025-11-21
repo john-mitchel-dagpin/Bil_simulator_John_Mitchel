@@ -1,4 +1,5 @@
 #include "Pickup.hpp"
+#include <algorithm>
 
 Pickup::Pickup(Type type, float x, float z)
     : type_(type)
@@ -10,11 +11,16 @@ Pickup::Pickup(Type type, float x, float z)
 void Pickup::onCarOverlap(Car& car) {
     if (!active_) return;
 
-    if (type_ == Type::SpeedBoost) {
-        // naive boost
-        car.setRotation(car.rotation());
+    switch (type_) {
+
+        case Type::SpeedBoost:
+            car.applySpeedBoost();
+            break;
+
+        case Type::SizeChange:
+            car.applySizeChange();
+            break;
     }
 
     active_ = false;
 }
-

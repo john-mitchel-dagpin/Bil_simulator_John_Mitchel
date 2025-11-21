@@ -8,6 +8,8 @@ void Car::reset() {
     position_ = {0.f, 0.f};
     rotation_ = 0.f;
     speed_ = 0.f;
+    visualScale_ = 1.f;
+
 }
 
 void Car::setPosition(float x, float z) {
@@ -19,6 +21,26 @@ void Car::setRotation(float angle) {
 }
 
 void Car::update(float dt, const InputState& input) {
+
+    // update timers
+    if (boostTimer_ > 0) {
+        boostTimer_ -= dt;
+        if (boostTimer_ <= 0) {
+            maxSpeed_ = 20.f;
+            acceleration_ = 15.f;
+        }
+    }
+
+    if (sizeTimer_ > 0) {
+        sizeTimer_ -= dt;
+        if (sizeTimer_ <= 0 && enlarged_) {
+            halfWidth_ = 1.f;
+            halfLength_ = 2.f;
+            visualScale_ = 1.f;
+            enlarged_ = false;
+        }
+    }
+
     if (input.accelerate) {
         speed_ += acceleration_ * dt;
     }
@@ -53,4 +75,19 @@ Car::AABB Car::bounds() const {
         position_.z - halfLength_,
         position_.z + halfLength_
     };
+}
+void Car::applySpeedBoost() {
+    maxSpeed_ = 40.f;
+    acceleration_ = 25.f;
+    boostTimer_ = 5.f; // lasts 5 seconds
+}
+
+void Car::applySizeChange() {
+    if (!enlarged_) {
+        halfWidth_ = 3.f;
+        halfLength_ = 5.f;
+        enlarged_ = true;
+        visualScale_ = 2.0f;
+        sizeTimer_ = 6.f; // lasts 6 seconds
+    }
 }
