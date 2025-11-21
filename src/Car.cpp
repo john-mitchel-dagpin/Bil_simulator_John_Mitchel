@@ -1,56 +1,56 @@
 #include "Car.hpp"
+#include <cmath>
 #include <algorithm>
 
-void Car::update(float dt, bool forward, bool backward, bool left, bool right) {
-
-    // throttle and brake
-    float throttle = forward ? 1.f : 0.f;
-    float brake    = backward ? 1.f : 0.f;
-
-    // longitudinal speed
-    speed += (throttle * accel - brake * brakeAccel - drag * speed) * dt;
-
-    // clamp speed (allow limited reverse)
-    if (speed >  maxSpeed)          speed =  maxSpeed;
-    if (speed < -maxSpeed * 0.35f)  speed = -maxSpeed * 0.35f;
-
-    // steering input
-    float steerInput = 0.f;
-    if (left)  steerInput += 1.f;
-    if (right) steerInput -= 1.f;
-
-    // target steering
-    float target = steerInput * maxSteer;
-
-    // rate-limit change of steering
-    float diff = target - steerAngle;
-    float step = steerRate * dt;
-    if (diff >  step) diff =  step;
-    if (diff < -step) diff = -step;
-    steerAngle += diff;
-
-    // auto-center when no input
-    if (steerInput == 0.f) {
-        if (std::fabs(steerAngle) <= step) steerAngle = 0.f;
-        else steerAngle += (steerAngle > 0 ? -step : step);
-    }
-
-    // bicycle model
-    heading += (speed / wheelbase) * std::tan(steerAngle) * dt;
-
-    // integrate position
-    position.x += std::cos(heading) * speed * dt;
-    position.y += std::sin(heading) * speed * dt;
-}
-
-bool Car::checkCollision(const Vec2 &objPos, float objRadius, float carRadius) const {
-    float r = objRadius + carRadius;
-    return dist(position, objPos) <= r;
-}
+Car::Car() = default;
 
 void Car::reset() {
-    position   = Vec2{0.f, 0.f};
-    heading    = 0.f;
-    speed      = 0.f;
-    steerAngle = 0.f;
+    position_ = {0.f, 0.f};
+    rotation_ = 0.f;
+    speed_ = 0.f;
+}
+
+void Car::setPosition(float x, float z) {
+    position_ = {x, z};
+}
+
+void Car::setRotation(float angle) {
+    rotation_ = angle;
+}
+
+void Car::update(float dt, const InputState& input) {
+    if (input.accelerate) {
+        speed_ += acceleration_ * dt;
+    }
+    if (input.brake) {
+        speed_ -= brakeDeceleration_ * dt;
+    }
+
+    // friction
+    if (!input.accelerate && !input.brake) {
+        if (speed_ > 0) speed_ = std::max(0.f, speed_ - friction_ * dt);
+        else if (speed_ < 0) speed_ = std::min(0.f, speed_ + friction_ * dt);
+    }
+
+    // clamp
+    speed_ = std::clamp(speed_, -maxSpeed_ * 0.5f, maxSpeed_);
+
+    // rotation only when moving a bit
+    if (std::abs(speed_) > 0.1f) {
+        if (input.turnLeft) rotation_ += turnSpeed_ * dt;
+        if (input.turnRight) rotation_ -= turnSpeed_ * dt;
+    }
+
+    // movement
+    position_.x += std::sin(rotation_) * speed_ * dt;
+    position_.z += std::cos(rotation_) * speed_ * dt;
+}
+
+Car::AABB Car::bounds() const {
+    return {
+        position_.x - halfWidth_,
+        position_.x + halfWidth_,
+        position_.z - halfLength_,
+        position_.z + halfLength_
+    };
 }

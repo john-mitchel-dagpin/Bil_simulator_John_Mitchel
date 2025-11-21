@@ -1,32 +1,52 @@
+//
+// Created by johnm on 21.11.2025.
+//
+
 #ifndef BIL_SIMULATOR_JOHN_MITCHEL_CAR_HPP
 #define BIL_SIMULATOR_JOHN_MITCHEL_CAR_HPP
-
 #pragma once
-#include "physics.hpp"
-#include <cmath>
+#pragma once
+#include "InputState.hpp"
 
-struct Car {
-
-    // State
-    Vec2  position{0.f, 0.f};
-    float heading   = 0.f;
-    float speed     = 0.f;
-
-    // Dynamics tuning
-    float accel      = 4.0f;
-    float brakeAccel = 6.0f;
-    float drag       = 0.8f;
-    float maxSpeed   = 8.0f;
-
-    // Steering
-    float steerAngle = 0.0f;
-    float maxSteer   = 30.0f * 3.14159265f / 180.f;   // 30 degrees
-    float steerRate  = 180.0f * 3.14159265f / 180.f;  // 180 deg/sec
-    float wheelbase  = 1.2f;                          // meters
-
-    void update(float dt, bool forward, bool backward, bool left, bool right);
-    bool checkCollision(const Vec2& objPos, float objRadius, float carRadius) const;
-    void reset();
+struct Vec2 {
+    float x{};
+    float z{};
 };
 
-#endif
+class Car {
+public:
+    Car();
+
+    void update(float dt, const InputState& input);
+    void reset();
+
+    void setPosition(float x, float z);
+    void setRotation(float angle);
+
+    Vec2 position() const { return position_; }
+    float rotation() const { return rotation_; }
+    float speed() const { return speed_; }
+
+    struct AABB {
+        float minX, maxX;
+        float minZ, maxZ;
+    };
+
+    AABB bounds() const;
+
+private:
+    Vec2 position_{};
+    float rotation_ = 0.f;
+    float speed_ = 0.f;
+
+    float maxSpeed_ = 20.f;
+    float acceleration_ = 15.f;
+    float brakeDeceleration_ = 25.f;
+    float friction_ = 5.f;
+    float turnSpeed_ = 2.5f;
+
+    float halfWidth_ = 1.f;
+    float halfLength_ = 2.f;
+};
+
+#endif //BIL_SIMULATOR_JOHN_MITCHEL_CAR_HPP
