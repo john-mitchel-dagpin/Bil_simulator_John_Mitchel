@@ -151,19 +151,33 @@ int main() {
 
     const float wheelSpinFactor = 7.f;
 
+
     // ================================
-    //          DOOR / GATE
+    //          DOORS / GATES
     // ================================
-    auto doorMesh = Mesh::create(
+    auto door1Mesh = Mesh::create(
         BoxGeometry::create(4.f, 4.f, 0.5f),
         MeshPhongMaterial::create({{"color", 0x888800}})
     );
-    doorMesh->position.set(0.f, 2.f, 12.f); // same z as gate obstacle
-    scene.add(doorMesh);
+    door1Mesh->position.set(0.f, 2.f, 15.f); // align with gate1 at z=15
+    scene.add(door1Mesh);
 
-    float doorBaseY = doorMesh->position.y;
-    float doorOpenAmount = 0.f;      // 0 = closed, 1 = fully open
+    auto door2Mesh = Mesh::create(
+        BoxGeometry::create(4.f, 4.f, 0.5f),
+        MeshPhongMaterial::create({{"color", 0x884488}})
+    );
+    door2Mesh->position.set(0.f, 2.f, 75.f); // align with gate2 at z=75
+    scene.add(door2Mesh);
+
+    float door1BaseY = door1Mesh->position.y;
+    float door2BaseY = door2Mesh->position.y;
+
+    float door1OpenAmount = 0.f; // 0 = closed, 1 = fully open
+    float door2OpenAmount = 0.f;
+
     const float doorOpenSpeed = 1.0f;
+
+
 
     // ================================
     //          GAME LOGIC
@@ -268,21 +282,32 @@ int main() {
         camera.position.lerp(desiredPos, camSmooth);
         camera.lookAt({car.position().x, 0.f, car.position().z});
 
-        // --- Door opening animation ---
-        if (game.world().allPickupsCollected() && doorOpenAmount < 1.f) {
-            doorOpenAmount = std::min(1.f, doorOpenAmount + doorOpenSpeed * dt);
+        // --- Door 1 animation (opens after 2 pickups) ---
+        if (game.world().gate1IsOpen()) {
+            door1OpenAmount = std::min(1.f, door1OpenAmount + doorOpenSpeed * dt);
+        } else {
+            door1OpenAmount = std::max(0.f, door1OpenAmount - doorOpenSpeed * dt);
         }
-        doorMesh->position.y = doorBaseY + doorOpenAmount * 5.f;
+        door1Mesh->position.y = door1BaseY + door1OpenAmount * 5.f;
 
-        // --- Update pickups visibility ---
+        // --- Door 2 animation (opens when all pickups collected) ---
+        if (game.world().gate2IsOpen()) {
+            door2OpenAmount = std::min(1.f, door2OpenAmount + doorOpenSpeed * dt);
+        } else {
+            door2OpenAmount = std::max(0.f, door2OpenAmount - doorOpenSpeed * dt);
+        }
+        door2Mesh->position.y = door2BaseY + door2OpenAmount * 5.f;
+
+
+        // --- Update pickups visibility (also handles reset) ---
         const auto& objects = game.world().objects();
         for (std::size_t i = 0; i < objects.size(); ++i) {
             if (!objectMeshes[i]) continue;
-            auto pickup = dynamic_cast<Pickup*>(objects[i].get());
-            if (pickup && !pickup->isActive()) {
-                objectMeshes[i]->visible = false;
+            if (auto pickup = dynamic_cast<Pickup*>(objects[i].get())) {
+                objectMeshes[i]->visible = pickup->isActive();
             }
         }
+
 
         renderer.render(scene, camera);
     });

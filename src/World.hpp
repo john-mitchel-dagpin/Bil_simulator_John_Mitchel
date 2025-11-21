@@ -1,7 +1,7 @@
 #ifndef BIL_SIMULATOR_JOHN_MITCHEL_WORLD_HPP
 #define BIL_SIMULATOR_JOHN_MITCHEL_WORLD_HPP
-
 #pragma once
+
 #include <vector>
 #include <memory>
 #include "Car.hpp"
@@ -20,14 +20,21 @@ public:
 
     const std::vector<std::unique_ptr<GameObject>>& objects() const { return objects_; }
 
-    // Helper used by main.cpp to animate the door
+    // Pickup info (for gates & later UI)
     bool allPickupsCollected() const;
+    int totalPickups() const;
+    int collectedPickups() const;
+
+    // Gate state (for door animations in main.cpp)
+    bool gate1IsOpen() const;
+    bool gate2IsOpen() const;
 
 private:
     Car car_;
     std::vector<std::unique_ptr<GameObject>> objects_;
 
-    Obstacle* gateObstacle_ = nullptr; // logic obstacle blocking the gate
+    Obstacle* gate1Obstacle_ = nullptr;
+    Obstacle* gate2Obstacle_ = nullptr;
 
     bool intersects(const Car::AABB& a, const GameObject::AABB& b) const;
 };
