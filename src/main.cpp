@@ -1,4 +1,6 @@
 #include <threepp/threepp.hpp>
+#include <threepp/loaders/OBJLoader.hpp>
+
 #include "Game.hpp"
 #include "Pickup.hpp"
 #include "Obstacle.hpp"
@@ -6,8 +8,13 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <iostream>
 
 using namespace threepp;
+
+// -----------------------------------------------------
+// KEYBOARD HANDLER
+// -----------------------------------------------------
 
 class KeyHandler : public KeyListener {
 public:
@@ -19,10 +26,10 @@ public:
     void onKeyPressed(KeyEvent evt) override {
         switch (evt.key) {
             case Key::W: input.accelerate = true; break;
-            case Key::S: input.brake = true; break;
-            case Key::A: input.turnLeft = true; break;
-            case Key::D: input.turnRight = true; break;
-            case Key::R: game.reset(); break;
+            case Key::S: input.brake      = true; break;
+            case Key::A: input.turnLeft   = true; break;
+            case Key::D: input.turnRight  = true; break;
+            case Key::R: game.reset();            break;
             default: break;
         }
     }
@@ -30,164 +37,78 @@ public:
     void onKeyReleased(KeyEvent evt) override {
         switch (evt.key) {
             case Key::W: input.accelerate = false; break;
-            case Key::S: input.brake = false; break;
-            case Key::A: input.turnLeft = false; break;
-            case Key::D: input.turnRight = false; break;
+            case Key::S: input.brake      = false; break;
+            case Key::A: input.turnLeft   = false; break;
+            case Key::D: input.turnRight  = false; break;
             default: break;
         }
     }
 };
 
+
+// -----------------------------------------------------
+// MAIN
+// -----------------------------------------------------
+
 int main() {
 
-    // --- Window / canvas ---
+    // --- Window / renderer ---
     Canvas::Parameters params;
-    params.title("Bilsimulator")
+    params.title("Bilsimulator - Mountain Test")
           .size(1280, 720)
           .resizable(true)
           .antialiasing(4);
 
     Canvas canvas(params);
 
-    // --- Renderer ---
     GLRenderer renderer(canvas.size());
-    renderer.setClearColor(Color(0x202530)); // darker sky-ish
+    renderer.setClearColor(Color(0x87CEEB)); // sky blue
 
-    // --- Scene ---
     Scene scene;
 
-    // --- Camera with chase behaviour ---
-    PerspectiveCamera camera(60, canvas.aspect(), 0.1f, 500.f);
+    // --- Camera (chase cam) ---
+    PerspectiveCamera camera(60, canvas.aspect(), 0.1f, 1000.f);
     camera.position.set(0, 15, 20);
-    camera.lookAt(0, 0, 0);
 
     float camDistance = 15.f;
     float camHeight   = 8.f;
     float camSmooth   = 0.1f;
 
-    // --- Resize handling ---
     canvas.onWindowResize([&](WindowSize size) {
         camera.aspect = float(size.width()) / float(size.height());
         camera.updateProjectionMatrix();
         renderer.setSize(size);
     });
 
-    // --- Lighting: fantasy-ish ---
-    auto ambient = AmbientLight::create(0x555555);
+    // --- Lighting ---
+    auto sun = DirectionalLight::create(0xffffff, 1.5f);
+    sun->position.set(50, 100, 20);
+    scene.add(sun);
+
+    auto ambient = AmbientLight::create(0xffffff, 0.5f);
     scene.add(ambient);
 
-    auto dirLight = DirectionalLight::create(0xffffff, 0.9f);
-    dirLight->position.set(30, 50, 10);
-    scene.add(dirLight);
-
-    // --- Ground: big green meadow ---
+    // --- Ground plane (big meadow) ---
     auto ground = Mesh::create(
         PlaneGeometry::create(200, 200),
-        MeshPhongMaterial::create({{"color", 0x3a7f3a}})
+        MeshPhongMaterial::create({{"color", 0x558855}})
     );
     ground->rotation.x = -math::PI / 2;
     scene.add(ground);
 
-    // --- Pixel-style stone path tiles down center ---
-    auto makePathTile = [&](float z, int index) {
-        unsigned int color = (index % 2 == 0) ? 0x777777 : 0x888888;
-        auto tile = Mesh::create(
-            BoxGeometry::create(4.f, 0.2f, 4.f),
-            MeshPhongMaterial::create({{"color", color}})
-        );
-        tile->position.set(0.f, 0.1f, z);
-        scene.add(tile);
-    };
-
-    int tileIndex = 0;
-    for (float z = -40.f; z <= 140.f; z += 4.f) {
-        makePathTile(z, tileIndex++);
-    }
-
-    // --- Lakes: glowing water planes on sides ---
-    auto waterMat = MeshPhongMaterial::create({
-        {"color", 0x3399ff},
-        {"transparent", true},
-        {"opacity", 0.7f}
-    });
-
-    auto makeLake = [&](float x, float z, float w, float h) {
-        auto lake = Mesh::create(
-            PlaneGeometry::create(w, h),
-            waterMat
-        );
-        lake->rotation.x = -math::PI / 2;
-        lake->position.set(x, 0.02f, z);
-        scene.add(lake);
-    };
-
-    makeLake(-9.f, -10.f, 16.f, 16.f);
-    makeLake( 9.f, -5.f, 14.f, 12.f);
-    makeLake(-9.f,  40.f, 16.f, 18.f);
-    makeLake( 9.f,  55.f, 18.f, 18.f);
-
-    // --- Trees: simple fantasy trees from primitives ---
-    auto trunkGeo = CylinderGeometry::create(0.3f, 0.4f, 2.0f, 12);
-    auto leavesGeo = SphereGeometry::create(1.0f, 16, 16);
-    auto trunkMat = MeshPhongMaterial::create({{"color", 0x5b3b18}});
-    auto leavesMat = MeshPhongMaterial::create({{"color", 0x1ea34a}});
-
-    auto makeTree = [&](float x, float z) {
-        auto tree = Group::create();
-        auto trunk = Mesh::create(trunkGeo, trunkMat);
-        auto leaves = Mesh::create(leavesGeo, leavesMat);
-        trunk->position.y = 1.f;
-        leaves->position.y = 2.2f;
-        tree->add(trunk);
-        tree->add(leaves);
-        tree->position.set(x, 0.f, z);
-        scene.add(tree);
-    };
-
-    // place trees mostly along edges
-    for (float z = -30.f; z <= 120.f; z += 12.f) {
-        makeTree(-10.5f, z + 3.f);
-        makeTree( 10.5f, z - 4.f);
-    }
-    makeTree(-7.f, -15.f);
-    makeTree( 7.f, -18.f);
-    makeTree(-8.f, 30.f);
-    makeTree( 8.f, 38.f);
-    makeTree(-7.f, 80.f);
-    makeTree( 7.f, 92.f);
-
-    // --- Rocks: scattered decorations ---
-    auto rockGeo = SphereGeometry::create(0.7f, 12, 12);
-    auto rockMat = MeshPhongMaterial::create({{"color", 0x555555}});
-
-    auto makeRock = [&](float x, float z) {
-        auto rock = Mesh::create(rockGeo, rockMat);
-        rock->position.set(x, 0.5f, z);
-        scene.add(rock);
-    };
-
-    makeRock(-2.f, -12.f);
-    makeRock( 3.f, -6.f);
-    makeRock(-3.f, 28.f);
-    makeRock( 4.f, 42.f);
-    makeRock( 0.f, 62.f);
-    makeRock(-4.f, 88.f);
-    makeRock( 4.f, 104.f);
-
     // --- Car body ---
     auto carMesh = Mesh::create(
         BoxGeometry::create(2, 1, 4),
-        MeshPhongMaterial::create({{"color", 0xff3333}})
+        MeshPhongMaterial::create({{"color", 0xff0000}})
     );
     carMesh->position.y = 0.5f;
     scene.add(carMesh);
 
-    // ================================
-    //          WHEELS (hierarchy)
-    // ================================
+    // =====================================================
+    //                 WHEELS (no wobble)
+    // =====================================================
     auto tireGeo = CylinderGeometry::create(0.5f, 0.5f, 0.4f, 24);
     tireGeo->rotateZ(math::PI / 2);
-
     auto rimGeo = CylinderGeometry::create(0.3f, 0.3f, 0.45f, 12);
     rimGeo->rotateZ(math::PI / 2);
 
@@ -195,133 +116,125 @@ int main() {
     auto rimMat  = MeshPhongMaterial::create({{"color", 0xffffff}});
 
     auto makeWheelVisual = [&]() {
-        auto visual = Group::create();
-        auto tire = Mesh::create(tireGeo, tireMat);
-        auto rim  = Mesh::create(rimGeo, rimMat);
-        visual->add(tire);
-        visual->add(rim);
-        return visual;
+        auto g = Group::create();
+        g->add(Mesh::create(tireGeo, tireMat));
+        g->add(Mesh::create(rimGeo, rimMat));
+        return g;
     };
 
     float wheelY = 0.0f;
     float wheelX = 1.1f;
     float wheelZ = 1.6f;
 
+    // Front wheels use a steering pivot group (no wobble)
     auto flSteer = Group::create();
-    auto flVisual = makeWheelVisual();
-    flSteer->add(flVisual);
-    flSteer->position.set(-wheelX, wheelY, wheelZ);
-    carMesh->add(flSteer);
-
     auto frSteer = Group::create();
-    auto frVisual = makeWheelVisual();
-    frSteer->add(frVisual);
-    frSteer->position.set(wheelX, wheelY, wheelZ);
+    auto flWheel = makeWheelVisual();
+    auto frWheel = makeWheelVisual();
+    flSteer->add(flWheel);
+    frSteer->add(frWheel);
+
+    flSteer->position.set(-wheelX, wheelY,  wheelZ);
+    frSteer->position.set( wheelX, wheelY,  wheelZ);
+
+    carMesh->add(flSteer);
     carMesh->add(frSteer);
 
-    auto rlVisual = makeWheelVisual();
-    rlVisual->position.set(-wheelX, wheelY, -wheelZ);
-    carMesh->add(rlVisual);
+    // Rear wheels: just visuals
+    auto rlWheel = makeWheelVisual();
+    auto rrWheel = makeWheelVisual();
+    rlWheel->position.set(-wheelX, wheelY, -wheelZ);
+    rrWheel->position.set( wheelX, wheelY, -wheelZ);
+    carMesh->add(rlWheel);
+    carMesh->add(rrWheel);
 
-    auto rrVisual = makeWheelVisual();
-    rrVisual->position.set(wheelX, wheelY, -wheelZ);
-    carMesh->add(rrVisual);
+    float steeringAngle = 0.f; // front wheels steering
+    const float steeringLerp = 0.25f; // smoothing toward target
 
-    std::vector<std::shared_ptr<Group>> spinWheels = {flVisual, frVisual, rlVisual, rrVisual};
-
-    float steeringAngle = 0.f;
-    const float maxSteerAngle = 0.45f;
-    const float steerLerp     = 0.25f;
-    const float wheelSpinFactor = 7.f;
-
-    // ================================
-    //          DOORS / GATES
-    // ================================
-    auto gateStoneMat1 = MeshPhongMaterial::create({{"color", 0xaaa67f}});
-    auto gateStoneMat2 = MeshPhongMaterial::create({{"color", 0x8f6bbf}});
-
-    auto door1Mesh = Mesh::create(
-        BoxGeometry::create(4.f, 6.f, 0.6f),
-        gateStoneMat1
+    // =====================================================
+    //                 DOOR (visual for gate 1)
+    // =====================================================
+    auto doorMesh = Mesh::create(
+        BoxGeometry::create(4.f, 4.f, 0.5f),
+        MeshPhongMaterial::create({{"color", 0x888800}})
     );
-    door1Mesh->position.set(0.f, 3.f, 15.f);
-    scene.add(door1Mesh);
+    doorMesh->position.set(0.f, 2.f, 15.f); // align with gate1 z≈15
+    float doorBaseY = doorMesh->position.y;
+    float doorOpenAmount = 0.f;
 
-    auto door2Mesh = Mesh::create(
-        BoxGeometry::create(4.f, 6.f, 0.6f),
-        gateStoneMat2
-    );
-    door2Mesh->position.set(0.f, 3.f, 75.f);
-    scene.add(door2Mesh);
+    scene.add(doorMesh);
 
-    float door1BaseY = door1Mesh->position.y;
-    float door2BaseY = door2Mesh->position.y;
-    float door1OpenAmount = 0.f;
-    float door2OpenAmount = 0.f;
-    const float doorOpenSpeed = 1.0f;
-
-    // ================================
-    //          GAME LOGIC
-    // ================================
+    // =====================================================
+    //                 GAME LOGIC
+    // =====================================================
     Game game;
     InputState input;
 
-    // --- Visual meshes for pickups & obstacles ---
+    // Visual meshes for pickups / obstacles
     std::vector<std::shared_ptr<Mesh>> objectMeshes;
     objectMeshes.reserve(game.world().objects().size());
 
     for (const auto& obj : game.world().objects()) {
 
-        auto pickup = dynamic_cast<Pickup*>(obj.get());
+        auto pickup   = dynamic_cast<Pickup*>(obj.get());
         auto obstacle = dynamic_cast<Obstacle*>(obj.get());
 
         if (pickup) {
-            // pickups: glowing green spheres
             auto mesh = Mesh::create(
                 SphereGeometry::create(0.8f, 16, 16),
-                MeshPhongMaterial::create({{"color", 0x00ff55}})
+                MeshPhongMaterial::create({{"color", 0x00ff00}})
             );
-
             auto b = pickup->bounds();
-            float cx = (b.minX + b.maxX) * 0.5f;
-            float cz = (b.minZ + b.maxZ) * 0.5f;
-
-            mesh->position.set(cx, 0.8f, cz);
+            mesh->position.set((b.minX + b.maxX) * 0.5f,
+                               0.8f,
+                               (b.minZ + b.maxZ) * 0.5f);
             scene.add(mesh);
             objectMeshes.push_back(mesh);
 
         } else if (obstacle) {
             auto b = obstacle->bounds();
-            float cx = (b.minX + b.maxX) * 0.5f;
-            float cz = (b.minZ + b.maxZ) * 0.5f;
-            float width  = (b.maxX - b.minX);
-            float length = (b.maxZ - b.minZ);
+            float width  = b.maxX - b.minX;
+            float length = b.maxZ - b.minZ;
 
-            // heuristics: big/wide -> cliff wall, small -> rock block
+            // Side / far boundaries: keep as invisible colliders
+            bool isBigBoundary =
+                (length > 40.f || width > 20.f);
+
+            // Gates: small-ish, near z ≈ 15 or 75
+            bool isGateLike =
+                (std::abs(b.maxZ + b.minZ) * 0.5f - 15.f < 2.f) ||
+                (std::abs(b.maxZ + b.minZ) * 0.5f - 75.f < 2.f);
+
             std::shared_ptr<Mesh> mesh;
 
-            if (width > 4.f || length > 20.f) {
-                // cliff-like walls along valley
+            if (isBigBoundary) {
+                // Invisible tall boundary collider
                 mesh = Mesh::create(
-                    BoxGeometry::create(width, 4.f, length),
-                    MeshPhongMaterial::create({{"color", 0x28305a}})
-                );
-                mesh->position.set(cx, 2.f, cz);
-            } else if (width > 2.5f && length < 2.f) {
-                // likely a gate collider, we already draw doors separately -> make invisible
-                mesh = Mesh::create(
-                    BoxGeometry::create(width, 0.1f, length),
+                    BoxGeometry::create(width, 0.5f, length),
                     MeshPhongMaterial::create({{"color", 0x000000}})
                 );
                 mesh->visible = false;
-                mesh->position.set(cx, 0.05f, cz);
+                mesh->position.set((b.minX + b.maxX) * 0.5f,
+                                   0.25f,
+                                   (b.minZ + b.maxZ) * 0.5f);
+            } else if (isGateLike) {
+                // Keep visible (small stone-ish barrier)
+                mesh = Mesh::create(
+                    BoxGeometry::create(width, 3.f, length),
+                    MeshPhongMaterial::create({{"color", 0x444488}})
+                );
+                mesh->position.set((b.minX + b.maxX) * 0.5f,
+                                   1.5f,
+                                   (b.minZ + b.maxZ) * 0.5f);
             } else {
-                // regular rock obstacles
+                // Normal boulders
                 mesh = Mesh::create(
                     BoxGeometry::create(width, 2.f, length),
-                    MeshPhongMaterial::create({{"color", 0x444444}})
+                    MeshPhongMaterial::create({{"color", 0x555555}})
                 );
-                mesh->position.set(cx, 1.f, cz);
+                mesh->position.set((b.minX + b.maxX) * 0.5f,
+                                   1.f,
+                                   (b.minZ + b.maxZ) * 0.5f);
             }
 
             scene.add(mesh);
@@ -332,13 +245,42 @@ int main() {
         }
     }
 
-    // --- Keyboard handler ---
+    // =====================================================
+    //                 MOUNTAIN OBJ (edges only)
+    // =====================================================
+    OBJLoader loader;
+    auto mountainRoot = loader.load("objmodels/stone-mountain.obj");
+
+    if (!mountainRoot) {
+        std::cerr << "Failed to load mountain OBJ\n";
+    } else {
+        const float scale = 8.f;
+        std::vector<Vector3> positions = {
+            {-80, 0, -80},
+            { 80, 0, -80},
+            {-80, 0,  80},
+            { 80, 0,  80},
+            {  0, 0,  90},
+            { 90, 0,   0},
+        };
+
+        for (const auto& pos : positions) {
+            auto clone = mountainRoot->clone();
+            clone->scale.set(scale, scale, scale);
+            clone->position.copy(pos);
+            scene.add(clone);
+        }
+    }
+
+    // =====================================================
+    //                 INPUT HANDLER
+    // =====================================================
     KeyHandler handler(input, game);
     canvas.addKeyListener(handler);
 
-    // ================================
-    //          MAIN LOOP
-    // ================================
+    // =====================================================
+    //                 MAIN LOOP
+    // =====================================================
     canvas.animate([&]() {
 
         float dt = 1.f / 60.f;
@@ -354,56 +296,48 @@ int main() {
         float s = car.getVisualScale();
         carMesh->scale.set(s, s, s);
 
-        // --- Steering animation (simple + smooth) ---
+        // --- Steering: smooth, no wobble ---
         float targetSteer = 0.f;
-        if (input.turnLeft)  targetSteer =  maxSteerAngle;
-        if (input.turnRight) targetSteer = -maxSteerAngle;
-        steeringAngle += (targetSteer - steeringAngle) * steerLerp;
+        if (input.turnLeft)  targetSteer =  0.45f;
+        if (input.turnRight) targetSteer = -0.45f;
+
+        steeringAngle += (targetSteer - steeringAngle) * steeringLerp;
 
         flSteer->rotation.y = steeringAngle;
         frSteer->rotation.y = steeringAngle;
 
-        // --- Wheel spinning ---
-        float spin = car.speed() * dt * wheelSpinFactor;
-        for (auto& w : spinWheels) {
-            w->rotation.x += spin;
-        }
+        // --- Wheel spin (around own axis only) ---
+        float spin = car.speed() * dt * 7.f;
+        flWheel->rotation.x += spin;
+        frWheel->rotation.x += spin;
+        rlWheel->rotation.x += spin;
+        rrWheel->rotation.x += spin;
 
         // --- Chase camera ---
         float fx = std::sin(car.rotation());
         float fz = std::cos(car.rotation());
 
-        Vector3 desiredPos(
+        Vector3 desired(
             car.position().x - fx * camDistance,
             camHeight,
             car.position().z - fz * camDistance
         );
 
-        camera.position.lerp(desiredPos, camSmooth);
+        camera.position.lerp(desired, camSmooth);
         camera.lookAt({car.position().x, 0.f, car.position().z});
 
-        // --- Door 1 animation (opens after some pickups) ---
-        if (game.world().gate1IsOpen()) {
-            door1OpenAmount = std::min(1.f, door1OpenAmount + doorOpenSpeed * dt);
-        } else {
-            door1OpenAmount = std::max(0.f, door1OpenAmount - doorOpenSpeed * dt);
+        // --- Door opening based on all pickups ---
+        if (game.world().allPickupsCollected()) {
+            doorOpenAmount = std::min(1.f, doorOpenAmount + dt);
         }
-        door1Mesh->position.y = door1BaseY + door1OpenAmount * 5.f;
+        doorMesh->position.y = doorBaseY + doorOpenAmount * 5.f;
 
-        // --- Door 2 animation (opens when all pickups collected) ---
-        if (game.world().gate2IsOpen()) {
-            door2OpenAmount = std::min(1.f, door2OpenAmount + doorOpenSpeed * dt);
-        } else {
-            door2OpenAmount = std::max(0.f, door2OpenAmount - doorOpenSpeed * dt);
-        }
-        door2Mesh->position.y = door2BaseY + door2OpenAmount * 5.f;
-
-        // --- Update pickups visibility (handles reset) ---
-        const auto& objects = game.world().objects();
-        for (std::size_t i = 0; i < objects.size(); ++i) {
-            if (!objectMeshes[i]) continue;
-            if (auto pickup = dynamic_cast<Pickup*>(objects[i].get())) {
-                objectMeshes[i]->visible = pickup->isActive();
+        // --- Hide collected pickups ---
+        const auto& objs = game.world().objects();
+        for (size_t i = 0; i < objs.size(); ++i) {
+            auto pick = dynamic_cast<Pickup*>(objs[i].get());
+            if (pick && !pick->isActive() && objectMeshes[i]) {
+                objectMeshes[i]->visible = false;
             }
         }
 

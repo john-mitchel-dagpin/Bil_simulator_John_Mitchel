@@ -33,14 +33,7 @@ void World::reset() {
     //                 NATURAL BOUNDARIES / CLIFFS
     // =====================================================
 
-    // Long cliff walls along the sides to keep player inside the valley
-    // left side
-    objects_.push_back(std::make_unique<Obstacle>(-13.f, 20.f, 1.0f, 60.f)); // covers z ~ -40..80
-    objects_.push_back(std::make_unique<Obstacle>(-13.f, 110.f, 1.0f, 50.f)); // covers z ~ 60..160
 
-    // right side
-    objects_.push_back(std::make_unique<Obstacle>(13.f, 20.f, 1.0f, 60.f));
-    objects_.push_back(std::make_unique<Obstacle>(13.f, 110.f, 1.0f, 50.f));
 
     // Back cliff behind start (south boundary)
     objects_.push_back(std::make_unique<Obstacle>(0.f, -45.f, 13.f, 1.0f));
@@ -73,7 +66,7 @@ void World::reset() {
 
     // Gate 1 between Zone 1 and 2, around z ~ 15
     {
-        auto gate = std::make_unique<Obstacle>(0.f, 15.f, 3.f, 0.7f);
+        auto gate = std::make_unique<Obstacle>(0.f, 35.f, 3.f, 0.7f);
         gate1Obstacle_ = gate.get();
         objects_.push_back(std::move(gate));
     }
