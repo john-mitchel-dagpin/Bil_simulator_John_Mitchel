@@ -20,8 +20,29 @@ class KeyHandler : public KeyListener {
 public:
     InputState& input;
     Game& game;
+    std::vector<std::shared_ptr<Mesh>>& objectMeshes;
+    std::shared_ptr<Mesh>& doorLeft;
+    std::shared_ptr<Mesh>& doorRight;
+    float& doorOpenAmount;
+    float doorLeftBaseX;
+    float doorRightBaseX;
 
-    KeyHandler(InputState& i, Game& g) : input(i), game(g) {}
+    KeyHandler(InputState& i,
+               Game& g,
+               std::vector<std::shared_ptr<Mesh>>& meshes,
+               std::shared_ptr<Mesh>& dLeft,
+               std::shared_ptr<Mesh>& dRight,
+               float& openAmount,
+               float leftBaseX,
+               float rightBaseX)
+        : input(i),
+          game(g),
+          objectMeshes(meshes),
+          doorLeft(dLeft),
+          doorRight(dRight),
+          doorOpenAmount(openAmount),
+          doorLeftBaseX(leftBaseX),
+          doorRightBaseX(rightBaseX) {}
 
     void onKeyPressed(KeyEvent evt) override {
         switch (evt.key) {
@@ -29,7 +50,27 @@ public:
             case Key::S: input.brake      = true; break;
             case Key::A: input.turnLeft   = true; break;
             case Key::D: input.turnRight  = true; break;
-            case Key::R: game.reset();            break;
+
+            case Key::R: {
+                // Reset game logic
+                game.reset();
+
+                // Reset door state
+                doorOpenAmount = 0.f;
+                if (doorLeft)  doorLeft->position.x  = doorLeftBaseX;
+                if (doorRight) doorRight->position.x = doorRightBaseX;
+
+                // Reset pickup visibility
+                const auto& objs = game.world().objects();
+                for (std::size_t i = 0; i < objs.size() && i < objectMeshes.size(); ++i) {
+                    auto pickup = dynamic_cast<Pickup*>(objs[i].get());
+                    if (pickup && objectMeshes[i]) {
+                        objectMeshes[i]->visible = true;
+                    }
+                }
+                break;
+            }
+
             default: break;
         }
     }
@@ -152,17 +193,30 @@ int main() {
     const float steeringLerp = 0.25f; // smoothing toward target
 
     // =====================================================
-    //                 DOOR (visual for gate 1)
+    //                 DOORS (double panel gate)
     // =====================================================
-    auto doorMesh = Mesh::create(
-        BoxGeometry::create(4.f, 4.f, 0.5f),
-        MeshPhongMaterial::create({{"color", 0x888800}})
-    );
-    doorMesh->position.set(0.f, 2.f, 15.f); // align with gate1 z≈15
-    float doorBaseY = doorMesh->position.y;
-    float doorOpenAmount = 0.f;
+    const float doorZ = 35.f; // align with gate1 (0, 35) in World.cpp
 
-    scene.add(doorMesh);
+    auto doorMat = MeshPhongMaterial::create({{"color", 0x8B4513}}); // brown
+
+    auto doorLeft  = Mesh::create(
+        BoxGeometry::create(1.8f, 4.f, 0.5f),
+        doorMat
+    );
+    auto doorRight = Mesh::create(
+        BoxGeometry::create(1.8f, 4.f, 0.5f),
+        doorMat
+    );
+
+    doorLeft->position.set(-1.f, 2.f, doorZ);
+    doorRight->position.set( 1.f, 2.f, doorZ);
+
+    scene.add(doorLeft);
+    scene.add(doorRight);
+
+    float doorLeftBaseX  = doorLeft->position.x;
+    float doorRightBaseX = doorRight->position.x;
+    float doorOpenAmount = 0.f; // 0 = closed, 1 = fully open
 
     // =====================================================
     //                 GAME LOGIC
@@ -193,48 +247,37 @@ int main() {
 
         } else if (obstacle) {
             auto b = obstacle->bounds();
+            float cx = (b.minX + b.maxX) * 0.5f;
+            float cz = (b.minZ + b.maxZ) * 0.5f;
             float width  = b.maxX - b.minX;
             float length = b.maxZ - b.minZ;
 
             // Side / far boundaries: keep as invisible colliders
-            bool isBigBoundary =
-                (length > 40.f || width > 20.f);
+            bool isBigBoundary = (length > 40.f || width > 20.f);
 
-            // Gates: small-ish, near z ≈ 15 or 75
+            // Gate colliders (z near 35 or 75)
             bool isGateLike =
-                (std::abs(b.maxZ + b.minZ) * 0.5f - 15.f < 2.f) ||
-                (std::abs(b.maxZ + b.minZ) * 0.5f - 75.f < 2.f);
+                (std::abs(cz - 35.f) < 2.f) ||
+                (std::abs(cz - 75.f) < 2.f);
 
             std::shared_ptr<Mesh> mesh;
 
-            if (isBigBoundary) {
-                // Invisible tall boundary collider
+            if (isBigBoundary || isGateLike) {
+                // Invisible collider (tall or gate)
                 mesh = Mesh::create(
                     BoxGeometry::create(width, 0.5f, length),
                     MeshPhongMaterial::create({{"color", 0x000000}})
                 );
                 mesh->visible = false;
-                mesh->position.set((b.minX + b.maxX) * 0.5f,
-                                   0.25f,
-                                   (b.minZ + b.maxZ) * 0.5f);
-            } else if (isGateLike) {
-                // Keep visible (small stone-ish barrier)
-                mesh = Mesh::create(
-                    BoxGeometry::create(width, 3.f, length),
-                    MeshPhongMaterial::create({{"color", 0x444488}})
-                );
-                mesh->position.set((b.minX + b.maxX) * 0.5f,
-                                   1.5f,
-                                   (b.minZ + b.maxZ) * 0.5f);
+                mesh->position.set(cx, 0.25f, cz);
+
             } else {
                 // Normal boulders
                 mesh = Mesh::create(
                     BoxGeometry::create(width, 2.f, length),
                     MeshPhongMaterial::create({{"color", 0x555555}})
                 );
-                mesh->position.set((b.minX + b.maxX) * 0.5f,
-                                   1.f,
-                                   (b.minZ + b.maxZ) * 0.5f);
+                mesh->position.set(cx, 1.f, cz);
             }
 
             scene.add(mesh);
@@ -275,7 +318,14 @@ int main() {
     // =====================================================
     //                 INPUT HANDLER
     // =====================================================
-    KeyHandler handler(input, game);
+    KeyHandler handler(input, game,
+                       objectMeshes,
+                       doorLeft,
+                       doorRight,
+                       doorOpenAmount,
+                       doorLeftBaseX,
+                       doorRightBaseX);
+
     canvas.addKeyListener(handler);
 
     // =====================================================
@@ -302,7 +352,6 @@ int main() {
         if (input.turnRight) targetSteer = -0.45f;
 
         steeringAngle += (targetSteer - steeringAngle) * steeringLerp;
-
         flSteer->rotation.y = steeringAngle;
         frSteer->rotation.y = steeringAngle;
 
@@ -330,11 +379,15 @@ int main() {
         if (game.world().allPickupsCollected()) {
             doorOpenAmount = std::min(1.f, doorOpenAmount + dt);
         }
-        doorMesh->position.y = doorBaseY + doorOpenAmount * 5.f;
+
+        // Slide doors apart horizontally
+        const float openDistance = 3.f;
+        doorLeft->position.x  = doorLeftBaseX  - doorOpenAmount * openDistance;
+        doorRight->position.x = doorRightBaseX + doorOpenAmount * openDistance;
 
         // --- Hide collected pickups ---
         const auto& objs = game.world().objects();
-        for (size_t i = 0; i < objs.size(); ++i) {
+        for (size_t i = 0; i < objs.size() && i < objectMeshes.size(); ++i) {
             auto pick = dynamic_cast<Pickup*>(objs[i].get());
             if (pick && !pick->isActive() && objectMeshes[i]) {
                 objectMeshes[i]->visible = false;
