@@ -13,6 +13,20 @@
 using namespace threepp;
 
 // -----------------------------------------------------
+// DOOR STRUCT
+// -----------------------------------------------------
+
+struct DoorSet {
+    std::shared_ptr<Mesh> left;
+    std::shared_ptr<Mesh> right;
+    float baseL{};
+    float baseR{};
+    float openAmount{0.f};
+    float doorZ{};
+    bool vertical = false;
+};
+
+// -----------------------------------------------------
 // KEYBOARD HANDLER
 // -----------------------------------------------------
 
@@ -21,28 +35,25 @@ public:
     InputState& input;
     Game& game;
     std::vector<std::shared_ptr<Mesh>>& objectMeshes;
-    std::shared_ptr<Mesh>& doorLeft;
-    std::shared_ptr<Mesh>& doorRight;
-    float& doorOpenAmount;
-    float doorLeftBaseX;
-    float doorRightBaseX;
+    DoorSet& gate1;
+    DoorSet& gate2;
+    DoorSet& gate3;
+    bool& portalTriggered;
 
     KeyHandler(InputState& i,
                Game& g,
                std::vector<std::shared_ptr<Mesh>>& meshes,
-               std::shared_ptr<Mesh>& dLeft,
-               std::shared_ptr<Mesh>& dRight,
-               float& openAmount,
-               float leftBaseX,
-               float rightBaseX)
-        : input(i),
-          game(g),
-          objectMeshes(meshes),
-          doorLeft(dLeft),
-          doorRight(dRight),
-          doorOpenAmount(openAmount),
-          doorLeftBaseX(leftBaseX),
-          doorRightBaseX(rightBaseX) {}
+               DoorSet& g1,
+               DoorSet& g2,
+               DoorSet& g3,
+               bool& portalFlag)
+            : input(i),
+              game(g),
+              objectMeshes(meshes),
+              gate1(g1),
+              gate2(g2),
+              gate3(g3),
+              portalTriggered(portalFlag) {}
 
     void onKeyPressed(KeyEvent evt) override {
         switch (evt.key) {
@@ -52,15 +63,23 @@ public:
             case Key::D: input.turnRight  = true; break;
 
             case Key::R: {
-                // Reset game logic
+                // Reset world logic
                 game.reset();
 
-                // Reset door state
-                doorOpenAmount = 0.f;
-                if (doorLeft)  doorLeft->position.x  = doorLeftBaseX;
-                if (doorRight) doorRight->position.x = doorRightBaseX;
+                // Reset doors
+                gate1.openAmount = gate2.openAmount = gate3.openAmount = 0.f;
 
-                // Reset pickup visibility
+                gate1.left->position.x  = gate1.baseL;
+                gate1.right->position.x = gate1.baseR;
+                gate2.left->position.x  = gate2.baseL;
+                gate2.right->position.x = gate2.baseR;
+                gate3.left->position.x  = gate3.baseL;
+                gate3.right->position.x = gate3.baseR;
+
+                // Reset portal state
+                portalTriggered = false;
+
+                // Reset pickup mesh visibility
                 const auto& objs = game.world().objects();
                 for (std::size_t i = 0; i < objs.size() && i < objectMeshes.size(); ++i) {
                     auto pickup = dynamic_cast<Pickup*>(objs[i].get());
@@ -68,6 +87,7 @@ public:
                         objectMeshes[i]->visible = true;
                     }
                 }
+
                 break;
             }
 
@@ -95,10 +115,10 @@ int main() {
 
     // --- Window / renderer ---
     Canvas::Parameters params;
-    params.title("Bilsimulator - Mountain Test")
-          .size(1280, 720)
-          .resizable(true)
-          .antialiasing(4);
+    params.title("Bilsimulator - Mountain World")
+            .size(1280, 720)
+            .resizable(true)
+            .antialiasing(4);
 
     Canvas canvas(params);
 
@@ -129,18 +149,31 @@ int main() {
     auto ambient = AmbientLight::create(0xffffff, 0.5f);
     scene.add(ambient);
 
-    // --- Ground plane (big meadow) ---
+    // --- Ground plane (400x400) with stone path texture ---
+    auto texture = TextureLoader().load("objmodels/textures/stonepath.png");
+    texture->wrapS = TextureWrapping::Repeat;
+    texture->wrapT = TextureWrapping::Repeat;
+    texture->repeat.set(8, 8);   // repeats the pattern
+
+    auto groundMat = MeshPhongMaterial::create({
+        {"map", texture}
+    });
+
     auto ground = Mesh::create(
         PlaneGeometry::create(400, 400),
-        MeshPhongMaterial::create({{"color", 0x558855}})
+        groundMat
     );
+
     ground->rotation.x = -math::PI / 2;
     scene.add(ground);
 
+
+
+
     // --- Car body ---
     auto carMesh = Mesh::create(
-        BoxGeometry::create(2, 1, 4),
-        MeshPhongMaterial::create({{"color", 0xff0000}})
+            BoxGeometry::create(2, 1, 4),
+            MeshPhongMaterial::create({{"color", 0xff0000}})
     );
     carMesh->position.y = 0.5f;
     scene.add(carMesh);
@@ -148,9 +181,9 @@ int main() {
     // =====================================================
     //                 WHEELS (no wobble)
     // =====================================================
-    auto tireGeo = CylinderGeometry::create(0.5f, 0.5f, 0.4f, 24);
+    auto tireGeo = CylinderGeometry::create(0.8f, 0.8f, 0.4f, 24);
     tireGeo->rotateZ(math::PI / 2);
-    auto rimGeo = CylinderGeometry::create(0.3f, 0.3f, 0.45f, 12);
+    auto rimGeo = CylinderGeometry::create(0.5f, 0.5f, 0.45f, 5);
     rimGeo->rotateZ(math::PI / 2);
 
     auto tireMat = MeshPhongMaterial::create({{"color", 0x111111}});
@@ -167,7 +200,7 @@ int main() {
     float wheelX = 1.1f;
     float wheelZ = 1.6f;
 
-    // Front wheels use a steering pivot group (no wobble)
+    // Front wheels pivot (steering)
     auto flSteer = Group::create();
     auto frSteer = Group::create();
     auto flWheel = makeWheelVisual();
@@ -181,7 +214,7 @@ int main() {
     carMesh->add(flSteer);
     carMesh->add(frSteer);
 
-    // Rear wheels: just visuals
+    // Rear wheels
     auto rlWheel = makeWheelVisual();
     auto rrWheel = makeWheelVisual();
     rlWheel->position.set(-wheelX, wheelY, -wheelZ);
@@ -189,34 +222,52 @@ int main() {
     carMesh->add(rlWheel);
     carMesh->add(rrWheel);
 
-    float steeringAngle = 0.f; // front wheels steering
-    const float steeringLerp = 0.25f; // smoothing toward target
+    float steeringAngle = 0.f;
+    const float steeringLerp = 0.25f;
 
     // =====================================================
-    //                 DOORS (double panel gate)
+    //               DOORS: THREE DOUBLE GATES
     // =====================================================
-    const float doorZ = 35.f; // align with gate1 (0, 35) in World.cpp
 
-    auto doorMat = MeshPhongMaterial::create({{"color", 0x8B4513}}); // brown
+    auto doorMat = MeshPhongMaterial::create({{"color", 0x8B4513}});
 
-    auto doorLeft  = Mesh::create(
-        BoxGeometry::create(1.8f, 4.f, 0.5f),
-        doorMat
-    );
-    auto doorRight = Mesh::create(
-        BoxGeometry::create(1.8f, 4.f, 0.5f),
-        doorMat
-    );
+    auto makeDoor = [&](float x, float z, bool vertical) {
+        DoorSet d;
 
-    doorLeft->position.set(-1.f, 2.f, doorZ);
-    doorRight->position.set( 1.f, 2.f, doorZ);
+        d.left  = Mesh::create(BoxGeometry::create(5.f, 7.f, 0.5f), doorMat);
+        d.right = Mesh::create(BoxGeometry::create(5.f, 7.f, 0.5f), doorMat);
 
-    scene.add(doorLeft);
-    scene.add(doorRight);
+        if (!vertical) {
+            // horizontal gate (doors slide apart on X-axis)
+            d.left->position.set(x - 3.f, 2.f, z);
+            d.right->position.set(x + 3.f, 2.f, z);
+            d.baseL = d.left->position.x;
+            d.baseR = d.right->position.x;
+        } else {
+            // vertical gate (doors slide apart on Z-axis)
+            d.left->position.set(x, 2.f, z - 3.f);
+            d.right->position.set(x, 2.f, z + 3.f);
+            d.baseL = d.left->position.z;
+            d.baseR = d.right->position.z;
+        }
 
-    float doorLeftBaseX  = doorLeft->position.x;
-    float doorRightBaseX = doorRight->position.x;
-    float doorOpenAmount = 0.f; // 0 = closed, 1 = fully open
+        d.vertical = vertical;   // ADD THIS FIELD TO DoorSet
+        d.doorZ = z;
+
+        scene.add(d.left);
+        scene.add(d.right);
+
+        return d;
+    };
+
+
+
+    // align with World.cpp gates
+    DoorSet gate1 = makeDoor(-120.f, -125.f, false); // left-right
+    DoorSet gate2 = makeDoor(   0.f,  100.f, true);  // vertical front-back
+    DoorSet gate3 = makeDoor( 110.f, -120.f, false); // left-right
+
+
 
     // =====================================================
     //                 GAME LOGIC
@@ -224,15 +275,7 @@ int main() {
     Game game;
     InputState input;
 
-
-    static int lastCount = -1;
-    if (lastCount != game.world().objects().size()) {
-        // TODO: rebuild objectMeshes + scene versions of meshes
-    }
-    lastCount = game.world().objects().size();
-
-
-    // Visual meshes for pickups / obstacles
+    // Visual meshes for pickups
     std::vector<std::shared_ptr<Mesh>> objectMeshes;
     objectMeshes.reserve(game.world().objects().size());
 
@@ -243,89 +286,60 @@ int main() {
 
         if (pickup) {
             auto mesh = Mesh::create(
-                SphereGeometry::create(0.8f, 16, 16),
-                MeshPhongMaterial::create({{"color", 0x00ff00}})
+                    SphereGeometry::create(0.8f, 16, 16),
+                    MeshPhongMaterial::create({{"color", 0x00ff00}})
             );
             auto b = pickup->bounds();
-            mesh->position.set((b.minX + b.maxX) * 0.5f,
-                               0.8f,
-                               (b.minZ + b.maxZ) * 0.5f);
+            mesh->position.set(
+                    (b.minX + b.maxX) * 0.5f,
+                    0.8f,
+                    (b.minZ + b.maxZ) * 0.5f
+            );
             scene.add(mesh);
             objectMeshes.push_back(mesh);
 
         } else if (obstacle) {
-            auto b = obstacle->bounds();
-            float cx = (b.minX + b.maxX) * 0.5f;
-            float cz = (b.minZ + b.maxZ) * 0.5f;
-            float width  = b.maxX - b.minX;
-            float length = b.maxZ - b.minZ;
-
+            // no visible mesh for obstacles here (pure colliders)
+            objectMeshes.push_back(nullptr);
         } else {
             objectMeshes.push_back(nullptr);
         }
     }
 
-
     // =====================================================
-    //                 LOAD OBJ WITH MTL + TEXTURE
+    //                 LOAD OBJ MODELS
     // =====================================================
     auto loadModel = [&](const std::string& name) -> std::shared_ptr<Group> {
-
         std::string objPath = "objmodels/" + name + ".obj";
-
         OBJLoader loader;
         auto root = loader.load(objPath);
-
         if (!root) {
             std::cerr << "Failed to load: " << objPath << "\n";
             return nullptr;
         }
-
-        // Scale uniform style (your models are small)
         root->scale.set(4.f, 4.f, 4.f);
-
         return root;
     };
 
-    // =====================================================
-    //            MODELS: mountain + buildings
-    // =====================================================
+    auto mountainModel = loadModel("stone-mountain");
+    auto villageModel  = loadModel("building-village");
+    auto castleModel   = loadModel("building-castle");
+    auto archeryModel  = loadModel("building-archery");
+    auto smelterModel  = loadModel("building-smelter");
 
-    // Load models once
-    auto mountainModel   = loadModel("stone-mountain");
-    auto villageModel    = loadModel("building-village");
-    auto castleModel     = loadModel("building-castle");
-    auto archeryModel    = loadModel("building-archery");
-    auto smelterModel    = loadModel("building-smelter");
-
-    // Simple structure to control placement + scale
     struct BuildingPlacement {
         std::shared_ptr<Group> model;
         Vector3 position;
         Vector3 scale;
     };
 
-    // Approximate your sketch coordinates:
-    // (you can tweak numbers later as you like)
     std::vector<BuildingPlacement> placements = {
-
-        // Left-bottom village
-        {villageModel,  {-150.f, -15.f, -150.f}, {60.f, 60.f, 60.f}},
-
-        // Left-middle village (second village)
-        {villageModel,  {-150.f, -15.f,  -100.f}, {60.f, 60.f, 60.f}},
-
-        // Top-left mountain (big, with secret portal)
-        {mountainModel, {-200.f, -15.f,  100.f}, {150.f, 150.f, 150.f}},
-
-        // Top-center castle
-        {castleModel,   {  5.f, -15.f,  150.f}, {80.f, 80.f, 80.f}},
-
-        // Right-top archer tower
-        {archeryModel,  { 150.f, -15.f,  150.f}, {60.f, 60.f, 60.f}},
-
-        // Right-bottom smelter
-        {smelterModel,  { 150.f, -15.f, -150.f}, {80.f, 80.f, 80.f}},
+            {villageModel,  {-150.f, -10.f, -150.f}, {60.f, 60.f, 60.f}},
+            {villageModel,  {-150.f, -10.f, -100.f}, {60.f, 60.f, 60.f}},
+            {mountainModel, {-200.f, -12.f,  100.f}, {150.f,150.f,150.f}},
+            {castleModel,   {   5.f, -12.f, 150.f},  {80.f, 80.f, 80.f}},
+            {archeryModel,  { 150.f,  -5.f, 150.f},  {60.f, 60.f, 60.f}},
+            {smelterModel,  { 150.f, -15.f,-150.f},  {80.f, 80.f, 80.f}},
     };
 
     for (auto& bp : placements) {
@@ -336,18 +350,21 @@ int main() {
         scene.add(obj);
     }
 
-
+    // =====================================================
+    //                 PORTAL STATE
+    // =====================================================
+    bool portalTriggered = false;
 
     // =====================================================
     //                 INPUT HANDLER
     // =====================================================
-    KeyHandler handler(input, game,
+    KeyHandler handler(input,
+                       game,
                        objectMeshes,
-                       doorLeft,
-                       doorRight,
-                       doorOpenAmount,
-                       doorLeftBaseX,
-                       doorRightBaseX);
+                       gate1,
+                       gate2,
+                       gate3,
+                       portalTriggered);
 
     canvas.addKeyListener(handler);
 
@@ -357,9 +374,15 @@ int main() {
     canvas.animate([&]() {
 
         float dt = 1.f / 60.f;
-        game.update(dt, input);
 
-        const auto& car = game.world().car();
+        auto& world = game.world();
+
+        // game update only if not in portal end-state
+        if (!portalTriggered) {
+            game.update(dt, input);
+        }
+
+        const auto& car = world.car();
 
         // --- Sync car mesh ---
         carMesh->position.x = car.position().x;
@@ -369,52 +392,85 @@ int main() {
         float s = car.getVisualScale();
         carMesh->scale.set(s, s, s);
 
-        // --- Steering: smooth, no wobble ---
+        // --- Steering (front wheels) ---
         float targetSteer = 0.f;
-        if (input.turnLeft)  targetSteer =  0.60f;
-        if (input.turnRight) targetSteer = -0.60f;
+        if (input.turnLeft)  targetSteer =  0.6f;
+        if (input.turnRight) targetSteer = -0.6f;
 
         steeringAngle += (targetSteer - steeringAngle) * steeringLerp;
         flSteer->rotation.y = steeringAngle;
         frSteer->rotation.y = steeringAngle;
 
-        // --- Wheel spin (around own axis only) ---
+        // --- Wheel spin ---
         float spin = car.speed() * dt * 7.f;
         flWheel->rotation.x += spin;
         frWheel->rotation.x += spin;
         rlWheel->rotation.x += spin;
         rrWheel->rotation.x += spin;
 
-        // --- Chase camera ---
-        float fx = std::sin(car.rotation());
-        float fz = std::cos(car.rotation());
+        // --- Door opening logic based on world gates ---
+        float openDist = 4.f;
 
-        Vector3 desired(
-            car.position().x - fx * camDistance,
-            camHeight,
-            car.position().z - fz * camDistance
-        );
-
-        camera.position.lerp(desired, camSmooth);
-        camera.lookAt({car.position().x, 30.f, car.position().z});
-
-        // --- Door opening based on all pickups ---
-        if (game.world().allPickupsCollected()) {
-            doorOpenAmount = std::min(1.f, doorOpenAmount + dt);
+        if (!gate1.vertical) {
+            gate1.left->position.x  = gate1.baseL - gate1.openAmount * openDist;
+            gate1.right->position.x = gate1.baseR + gate1.openAmount * openDist;
+        } else {
+            gate1.left->position.z  = gate1.baseL - gate1.openAmount * openDist;
+            gate1.right->position.z = gate1.baseR + gate1.openAmount * openDist;
         }
 
-        // Slide doors apart horizontally
-        const float openDistance = 3.f;
-        doorLeft->position.x  = doorLeftBaseX  - doorOpenAmount * openDistance;
-        doorRight->position.x = doorRightBaseX + doorOpenAmount * openDistance;
+        if (!gate2.vertical) {
+            gate2.left->position.x  = gate2.baseL - gate2.openAmount * openDist;
+            gate2.right->position.x = gate2.baseR + gate2.openAmount * openDist;
+        } else {
+            gate2.left->position.z  = gate2.baseL - gate2.openAmount * openDist;
+            gate2.right->position.z = gate2.baseR + gate2.openAmount * openDist;
+        }
+
+        if (!gate3.vertical) {
+            gate3.left->position.x  = gate3.baseL - gate3.openAmount * openDist;
+            gate3.right->position.x = gate3.baseR + gate3.openAmount * openDist;
+        } else {
+            gate3.left->position.z  = gate3.baseL - gate3.openAmount * openDist;
+            gate3.right->position.z = gate3.baseR + gate3.openAmount * openDist;
+        }
+
 
         // --- Hide collected pickups ---
-        const auto& objs = game.world().objects();
+        const auto& objs = world.objects();
         for (size_t i = 0; i < objs.size() && i < objectMeshes.size(); ++i) {
             auto pick = dynamic_cast<Pickup*>(objs[i].get());
             if (pick && !pick->isActive() && objectMeshes[i]) {
                 objectMeshes[i]->visible = false;
             }
+        }
+
+        // --- Portal trigger from world ---
+        if (world.portalTriggered()) {
+            portalTriggered = true;
+        }
+
+        // --- Camera: chase or god view ---
+        if (!portalTriggered) {
+
+            float fx = std::sin(car.rotation());
+            float fz = std::cos(car.rotation());
+
+            Vector3 desired(
+                    car.position().x - fx * camDistance,
+                    camHeight,
+                    car.position().z - fz * camDistance
+            );
+
+            camera.position.lerp(desired, camSmooth);
+            camera.lookAt({car.position().x, 5.f, car.position().z});
+
+        } else {
+            // God-view
+            camera.position.set(0.f, 180.f, 0.f);
+            camera.lookAt({0.f, 0.f, 0.f});
+            // You could also draw a UI text texture later here if you want.
+            // For now, it's just a nice top view.
         }
 
         renderer.render(scene, camera);
