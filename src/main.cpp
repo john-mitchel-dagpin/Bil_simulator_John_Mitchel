@@ -224,6 +224,14 @@ int main() {
     Game game;
     InputState input;
 
+
+    static int lastCount = -1;
+    if (lastCount != game.world().objects().size()) {
+        // TODO: rebuild objectMeshes + scene versions of meshes
+    }
+    lastCount = game.world().objects().size();
+
+
     // Visual meshes for pickups / obstacles
     std::vector<std::shared_ptr<Mesh>> objectMeshes;
     objectMeshes.reserve(game.world().objects().size());
@@ -252,68 +260,72 @@ int main() {
             float width  = b.maxX - b.minX;
             float length = b.maxZ - b.minZ;
 
-            // Side / far boundaries: keep as invisible colliders
-            bool isBigBoundary = (length > 40.f || width > 20.f);
-
-            // Gate colliders (z near 35 or 75)
-            bool isGateLike =
-                (std::abs(cz - 35.f) < 2.f) ||
-                (std::abs(cz - 75.f) < 2.f);
-
-            std::shared_ptr<Mesh> mesh;
-
-            if (isBigBoundary || isGateLike) {
-                // Invisible collider (tall or gate)
-                mesh = Mesh::create(
-                    BoxGeometry::create(width, 0.5f, length),
-                    MeshPhongMaterial::create({{"color", 0x000000}})
-                );
-                mesh->visible = false;
-                mesh->position.set(cx, 0.25f, cz);
-
-            } else {
-                // Normal boulders
-                mesh = Mesh::create(
-                    BoxGeometry::create(width, 2.f, length),
-                    MeshPhongMaterial::create({{"color", 0x555555}})
-                );
-                mesh->position.set(cx, 1.f, cz);
-            }
-
-            scene.add(mesh);
-            objectMeshes.push_back(mesh);
-
         } else {
             objectMeshes.push_back(nullptr);
         }
     }
 
+
+    // =====================================================
+    //                 LOAD OBJ WITH MTL + TEXTURE
+    // =====================================================
+    auto loadModel = [&](const std::string& name) -> std::shared_ptr<Group> {
+
+        std::string objPath = "objmodels/" + name + ".obj";
+
+        OBJLoader loader;
+        auto root = loader.load(objPath);
+
+        if (!root) {
+            std::cerr << "Failed to load: " << objPath << "\n";
+            return nullptr;
+        }
+
+        // Scale uniform style (your models are small)
+        root->scale.set(4.f, 4.f, 4.f);
+
+        return root;
+    };
+
     // =====================================================
     //                 MOUNTAIN OBJ (edges only)
     // =====================================================
-    OBJLoader loader;
-    auto mountainRoot = loader.load("objmodels/stone-mountain.obj");
 
-    if (!mountainRoot) {
-        std::cerr << "Failed to load mountain OBJ\n";
-    } else {
-        const float scale = 8.f;
+    auto mountain = loadModel("stone-mountain");
+    if (mountain) {
         std::vector<Vector3> positions = {
             {-80, 0, -80},
             { 80, 0, -80},
             {-80, 0,  80},
-            { 80, 0,  80},
-            {  0, 0,  90},
-            { 90, 0,   0},
+            { 80, 0,  80}
         };
 
-        for (const auto& pos : positions) {
-            auto clone = mountainRoot->clone();
-            clone->scale.set(scale, scale, scale);
-            clone->position.copy(pos);
-            scene.add(clone);
+        for (auto& pos : positions) {
+            auto m = mountain->clone();
+            m->position.copy(pos);
+            scene.add(m);
         }
     }
+
+    auto building1 = loadModel("building-village");
+    auto building2 = loadModel("building-castle");
+    auto building3 = loadModel("building-archery");
+    auto building4 = loadModel("building-smelter");
+
+    std::vector<std::pair<std::shared_ptr<Group>, Vector3>> buildingPlacements = {
+        {building1, {-30, 0, -10}},
+        {building2, { 35, 0,  20}},
+        {building3, {-40, 0,  40}},
+        {building4, { 20, 0,  60}}
+    };
+
+    for (auto& [model, pos] : buildingPlacements) {
+        if (!model) continue;
+        auto c = model->clone();
+        c->position.copy(pos);
+        scene.add(c);
+    }
+
 
     // =====================================================
     //                 INPUT HANDLER
