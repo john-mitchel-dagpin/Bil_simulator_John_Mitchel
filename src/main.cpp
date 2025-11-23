@@ -131,7 +131,7 @@ int main() {
 
     // --- Ground plane (big meadow) ---
     auto ground = Mesh::create(
-        PlaneGeometry::create(200, 200),
+        PlaneGeometry::create(400, 400),
         MeshPhongMaterial::create({{"color", 0x558855}})
     );
     ground->rotation.x = -math::PI / 2;
@@ -288,43 +288,54 @@ int main() {
     };
 
     // =====================================================
-    //                 MOUNTAIN OBJ (edges only)
+    //            MODELS: mountain + buildings
     // =====================================================
 
-    auto mountain = loadModel("stone-mountain");
-    if (mountain) {
-        std::vector<Vector3> positions = {
-            {-80, 0, -80},
-            { 80, 0, -80},
-            {-80, 0,  80},
-            { 80, 0,  80}
-        };
+    // Load models once
+    auto mountainModel   = loadModel("stone-mountain");
+    auto villageModel    = loadModel("building-village");
+    auto castleModel     = loadModel("building-castle");
+    auto archeryModel    = loadModel("building-archery");
+    auto smelterModel    = loadModel("building-smelter");
 
-        for (auto& pos : positions) {
-            auto m = mountain->clone();
-            m->position.copy(pos);
-            scene.add(m);
-        }
-    }
-
-    auto building1 = loadModel("building-village");
-    auto building2 = loadModel("building-castle");
-    auto building3 = loadModel("building-archery");
-    auto building4 = loadModel("building-smelter");
-
-    std::vector<std::pair<std::shared_ptr<Group>, Vector3>> buildingPlacements = {
-        {building1, {-30, 0, -10}},
-        {building2, { 35, 0,  20}},
-        {building3, {-40, 0,  40}},
-        {building4, { 20, 0,  60}}
+    // Simple structure to control placement + scale
+    struct BuildingPlacement {
+        std::shared_ptr<Group> model;
+        Vector3 position;
+        Vector3 scale;
     };
 
-    for (auto& [model, pos] : buildingPlacements) {
-        if (!model) continue;
-        auto c = model->clone();
-        c->position.copy(pos);
-        scene.add(c);
+    // Approximate your sketch coordinates:
+    // (you can tweak numbers later as you like)
+    std::vector<BuildingPlacement> placements = {
+
+        // Left-bottom village
+        {villageModel,  {-150.f, -15.f, -150.f}, {60.f, 60.f, 60.f}},
+
+        // Left-middle village (second village)
+        {villageModel,  {-150.f, -15.f,  -100.f}, {60.f, 60.f, 60.f}},
+
+        // Top-left mountain (big, with secret portal)
+        {mountainModel, {-200.f, -15.f,  100.f}, {150.f, 150.f, 150.f}},
+
+        // Top-center castle
+        {castleModel,   {  5.f, -15.f,  150.f}, {80.f, 80.f, 80.f}},
+
+        // Right-top archer tower
+        {archeryModel,  { 150.f, -15.f,  150.f}, {60.f, 60.f, 60.f}},
+
+        // Right-bottom smelter
+        {smelterModel,  { 150.f, -15.f, -150.f}, {80.f, 80.f, 80.f}},
+    };
+
+    for (auto& bp : placements) {
+        if (!bp.model) continue;
+        auto obj = bp.model->clone();
+        obj->position.copy(bp.position);
+        obj->scale.copy(bp.scale);
+        scene.add(obj);
     }
+
 
 
     // =====================================================
@@ -360,8 +371,8 @@ int main() {
 
         // --- Steering: smooth, no wobble ---
         float targetSteer = 0.f;
-        if (input.turnLeft)  targetSteer =  0.45f;
-        if (input.turnRight) targetSteer = -0.45f;
+        if (input.turnLeft)  targetSteer =  0.60f;
+        if (input.turnRight) targetSteer = -0.60f;
 
         steeringAngle += (targetSteer - steeringAngle) * steeringLerp;
         flSteer->rotation.y = steeringAngle;
@@ -385,7 +396,7 @@ int main() {
         );
 
         camera.position.lerp(desired, camSmooth);
-        camera.lookAt({car.position().x, 0.f, car.position().z});
+        camera.lookAt({car.position().x, 30.f, car.position().z});
 
         // --- Door opening based on all pickups ---
         if (game.world().allPickupsCollected()) {
