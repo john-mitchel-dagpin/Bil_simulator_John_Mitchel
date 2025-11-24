@@ -37,11 +37,21 @@ add_library(bilsim_core
 
 target_include_directories(bilsim_core PUBLIC src)
 
+
+# Fix MSVC "out of heap space" error
+if (MSVC)
+    add_compile_options(/bigobj)
+    add_compile_options(/Zm200)  # increase compiler heap
+endif()
+
+
+
 # ------------------------
 # Main Executable
 # ------------------------
 add_executable(Bil_simulator_John_Mitchel
         src/main.cpp
+
 )
 
 target_link_libraries(Bil_simulator_John_Mitchel

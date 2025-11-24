@@ -117,6 +117,7 @@ public:
 };
 
 
+
 // -----------------------------------------------------
 // MAIN
 // -----------------------------------------------------
@@ -133,7 +134,8 @@ int main() {
     Canvas canvas(params);
 
     GLRenderer renderer(canvas.size());
-    renderer.setClearColor(Color(0x87CEEB)); // Light sky blue
+    renderer.autoClearColor = true;
+    renderer.setClearColor(Color(0xA3C9F9));
 
 
     Scene scene;
@@ -141,19 +143,17 @@ int main() {
     // --- Camera (chase cam) ---
     PerspectiveCamera camera(60, canvas.aspect(), 0.1f, 1000.f);
     camera.position.set(0, 15, 20);
-
+    canvas.onWindowResize([&](WindowSize size) {
+    camera.aspect = float(size.width()) / float(size.height());
+    camera.updateProjectionMatrix();
+    renderer.setSize(size);
+    });
 
 
     float camDistance = 15.f;
     float camHeight   = 8.f;
     float camSmooth   = 0.1f;
 
-    canvas.onWindowResize([&](WindowSize size) {
-        camera.aspect = float(size.width()) / float(size.height());
-        camera.updateProjectionMatrix();
-        renderer.setSize(size);
-
-    });
 
     // --- Lighting ---
     auto sun = DirectionalLight::create(0xffffff, 1.5f);
@@ -248,10 +248,10 @@ int main() {
     };
 
     // Village fence
-    scene.add(makeFence(-10.f, -10.f, 10.f, 1.f)); // south
-    scene.add(makeFence(-10.f, 0.f, 10.f, 1.f));  // north
-    scene.add(makeFence(-10.f, -10.f, 1.f, 10.f));  // west
-    scene.add(makeFence(0.f,  -10.f, 1.f, 10.f));  // east
+    scene.add(makeFence(-50.f, 110.f, 120.f, 1.f)); // south
+    scene.add(makeFence(-50.f, 100.f, 120.f, 1.f));  // north
+    scene.add(makeFence(-100.f, 100.f, 1.f, 120.f));  // west
+    scene.add(makeFence(50.f,  100.f, 1.f, 120.f));  // east
 
     // Castle fence
     scene.add(makeFence(-60.f, 60.f, 10.f, 1.f)); // north
@@ -348,8 +348,6 @@ int main() {
     portalMesh->rotation.y = math::PI / 2;
     portalMesh->position.set(-150.f, 0.f, 120.f);
     scene.add(portalMesh);
-
-
 
 
 
@@ -535,8 +533,14 @@ int main() {
 
         // --- Portal trigger from world ---
         if (world.portalTriggered()) {
-            portalTriggered = true;
+            if (!portalTriggered) {
+                portalTriggered = true;
+
+                // Print end message to console (always works)
+                std::cout << "The end, thanks for playing (OOP Project)" << std::endl;
+            }
         }
+
 
         // --- Camera: chase or god view ---
         if (!portalTriggered) {
@@ -555,11 +559,11 @@ int main() {
 
         } else {
             // God-view
-            camera.position.set(0.f, 180.f, 0.f);
-            camera.lookAt({0.f, 0.f, 0.f});
-            // You could also draw a UI text texture later here if you want.
-            // For now, it's just a nice top view.
+            camera.position.set(0.f, 350.f, 0.f);
+            camera.lookAt({0.f, 0.f, 30.f});
         }
+
+
 
 
         renderer.render(scene, camera);
