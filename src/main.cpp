@@ -248,23 +248,23 @@ int main() {
     };
 
     // Village fence
-    scene.add(makeFence(-50.f, 110.f, 120.f, 1.f)); // south
-    scene.add(makeFence(-50.f, 100.f, 120.f, 1.f));  // north
-    scene.add(makeFence(-100.f, 100.f, 1.f, 120.f));  // west
-    scene.add(makeFence(50.f,  100.f, 1.f, 120.f));  // east
+    scene.add(makeFence(-120.f, -165.f, 1.f, 60.f)); // south
+    scene.add(makeFence(-120.f, -100.f, 1.f, 50.f));  // north
+    scene.add(makeFence(-160.f, -185.f, 80.f, 1.f));  // west
+    scene.add(makeFence(-160.f,  -65.f, 80.f, 1.f));  // east
 
     // Castle fence
-    scene.add(makeFence(-60.f, 60.f, 10.f, 1.f)); // north
-    scene.add(makeFence(-60.f, 50.f, 10.f, 1.f));  // south
-    scene.add(makeFence(-60.f,60.f,1.f,10.f));    // west
-    scene.add(makeFence(-50.f, 60.f,1.f,10.f));    // east
+    scene.add(makeFence(27.f, 100.f, 45.f, 1.f)); // north fence left
+    scene.add(makeFence(-20.f, 100.f, 30.f, 1.f));  // north fence right
+    scene.add(makeFence(50.f,150.f,1.f,100.f));    // west
+    scene.add(makeFence(-35.f, 150.f,1.f,100.f));    // east
 
     // Smelter fence
 
-    scene.add(makeFence(80.f, -30.f, 10.f, 1.f)); // north
-    scene.add(makeFence(80.f, -40.f, 10.f, 1.f)); // south
-    scene.add(makeFence(70.f, -40.f,1.f,10.f));    // west
-    scene.add(makeFence(80.f,-40.f,1.f,10.f));      // east
+    scene.add(makeFence(5.f, 5.f, 10.f, 1.f)); // north
+    scene.add(makeFence(5.f, 5.f, 10.f, 1.f)); // south
+    scene.add(makeFence(5.f, 5.f,1.f,10.f));    // west
+    scene.add(makeFence(5.f,5.f,1.f,10.f));      // east
 
 
 
@@ -421,7 +421,7 @@ int main() {
     std::vector<BuildingPlacement> placements = {
             {villageModel,  {-150.f, -11.f, -150.f}, {60.f, 60.f, 60.f}},
             {villageModel,  {-150.f, -11.f, -100.f}, {60.f, 60.f, 60.f}},
-            {mountainModel, {-200.f, -14.f,  100.f}, {150.f,150.f,150.f}},
+            {mountainModel, {-180.f, -14.f,  100.f}, {150.f,150.f,150.f}},
             {castleModel,   {   5.f, -15.f, 150.f},  {80.f, 80.f, 80.f}},
             {archeryModel,  { 150.f,  -13.f, 150.f},  {60.f, 60.f, 60.f}},
             {smelterModel,  { 150.f, -15.f,-150.f},  {80.f, 80.f, 80.f}},

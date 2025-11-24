@@ -49,8 +49,8 @@ void World::reset() {
     // --------------------------------------------------
     //  400x400 WORLD BORDER (ONLY COLLISION WALLS NOW)
     // --------------------------------------------------
-    const float B = 210.f; // near edge of 400×400 plane
-    const float T = 5.f;   // thickness
+    const float B = 200.f; // near edge of 400×400 plane
+    const float T = 1.f;   // thickness
 
     // north/south
     objects_.push_back(std::make_unique<Obstacle>(0.f,  B, 200.f, T));
@@ -66,11 +66,11 @@ void World::reset() {
     // objects_.push_back(std::make_unique<Obstacle>(-210.f, -100.f, 3.f, 80.f));  // west fence
     // objects_.push_back(std::make_unique<Obstacle>(-90.f,  -100.f, 3.f, 80.f));  // east fence except gate gap
     //
-    // // Castle fence (gate at 0,100)
-    // objects_.push_back(std::make_unique<Obstacle>(-60.f, 140.f, 120.f, 3.f)); // north wall
-    // objects_.push_back(std::make_unique<Obstacle>(-60.f, 60.f, 120.f, 3.f));  // south wall
-    // objects_.push_back(std::make_unique<Obstacle>(-120.f, 100.f, 3.f, 80.f)); // west wall
-    // objects_.push_back(std::make_unique<Obstacle>(120.f, 100.f, 3.f, 80.f));  // east wall
+     // Castle fence (gate at 0,100)
+     objects_.push_back(std::make_unique<Obstacle>(27.f, 100.f, 22.f, 1.f)); // north wall
+     objects_.push_back(std::make_unique<Obstacle>(-20.f, 100.f, 15.f, 1.f));  // south wall
+     objects_.push_back(std::make_unique<Obstacle>(50.f, 150.f, 1.f, 50.5f)); // west wall
+     objects_.push_back(std::make_unique<Obstacle>(-35.f, 150.f, 1.f, 50.5f));  // east wall
     //
     // // Smelter fence (gate at 110,-120)
     // objects_.push_back(std::make_unique<Obstacle>(80.f, -150.f, 120.f, 3.f)); // south
