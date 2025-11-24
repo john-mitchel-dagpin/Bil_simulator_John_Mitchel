@@ -235,6 +235,35 @@ int main() {
     float steeringAngle = 0.f;
     const float steeringLerp = 0.25f;
 
+    auto fenceMat = MeshPhongMaterial::create({{"color", 0x553311}});
+
+    auto makeFence = [&](float x, float z, float w, float h) {
+        auto mesh = Mesh::create(BoxGeometry::create(w, 2.f, h), fenceMat);
+        mesh->position.set(x, 1.f, z);
+        return mesh;
+    };
+
+    // Village fence
+    scene.add(makeFence(-150.f, -150.f, 120.f, 1.f)); // south
+    scene.add(makeFence(-150.f, -50.f, 120.f, 1.f));  // north
+    scene.add(makeFence(-210.f, -100.f, 1.f, 80.f));  // west
+    scene.add(makeFence(-90.f,  -100.f, 1.f, 80.f));  // east
+
+    // Castle fence
+    scene.add(makeFence(-60.f, 140.f, 120.f, 1.f)); // north
+    scene.add(makeFence(-60.f, 60.f, 120.f, 1.f));  // south
+    scene.add(makeFence(-120.f,100.f,1.f,80.f));    // west
+    scene.add(makeFence(120.f, 100.f,1.f,80.f));    // east
+
+    // Smelter fence
+
+    scene.add(makeFence(80.f, -150.f, 120.f, 1.f));
+    scene.add(makeFence(80.f, -70.f, 120.f, 1.f));
+    scene.add(makeFence(40.f, -110.f,1.f,80.f));
+    scene.add(makeFence(160.f,-110.f,1.f,80.f));
+
+
+
     // =====================================================
     //               DOORS: THREE DOUBLE GATES
     // =====================================================
@@ -299,6 +328,33 @@ int main() {
     DoorSet gate2 = makeDoor(   0.f,  100.f, false);  // castle = horizontal
     DoorSet gate3 = makeDoor( 110.f, -120.f, true);   // smelter = vertical
 
+    auto portalMat = MeshPhongMaterial::create({{"color", 0x00ccff}});
+    portalMat->emissive = Color(0x0088ff);
+    portalMat->transparent = true;
+    portalMat->opacity = 0.8f;
+
+    auto portalMesh = Mesh::create(
+        PlaneGeometry::create(10.f, 10.f),
+        portalMat
+    );
+
+    portalMesh->rotation.y = math::PI / 2;
+    portalMesh->position.set(-150.f, 5.f, 120.f); // match World.cpp
+    scene.add(portalMesh);
+
+    auto skyTex = TextureLoader().load("objmodels/textures/cloud_sky.jpg");
+
+    auto skyGeo = SphereGeometry::create(800.f, 32, 32);
+    skyTex->wrapS = TextureWrapping::MirroredRepeat;
+    skyTex->wrapT = TextureWrapping::MirroredRepeat;
+
+    auto skyMat = MeshBasicMaterial::create({
+        {"map", skyTex},
+        {"side", Side::Back}   // render inside sphere
+    });
+
+    auto sky = Mesh::create(skyGeo, skyMat);
+    scene.add(sky);
 
 
 
@@ -367,8 +423,8 @@ int main() {
     };
 
     std::vector<BuildingPlacement> placements = {
-            {villageModel,  {-150.f, -12.f, -150.f}, {60.f, 60.f, 60.f}},
-            {villageModel,  {-150.f, -12.f, -100.f}, {60.f, 60.f, 60.f}},
+            {villageModel,  {-150.f, -11.f, -150.f}, {60.f, 60.f, 60.f}},
+            {villageModel,  {-150.f, -11.f, -100.f}, {60.f, 60.f, 60.f}},
             {mountainModel, {-200.f, -14.f,  100.f}, {150.f,150.f,150.f}},
             {castleModel,   {   5.f, -15.f, 150.f},  {80.f, 80.f, 80.f}},
             {archeryModel,  { 150.f,  -13.f, 150.f},  {60.f, 60.f, 60.f}},

@@ -60,6 +60,29 @@ void World::reset() {
     objects_.push_back(std::make_unique<Obstacle>(-B, 0.f, T, 200.f));
     objects_.push_back(std::make_unique<Obstacle>( B, 0.f, T, 200.f));
 
+    // Village fence (doesn't block gate opening at -120,-125)
+    objects_.push_back(std::make_unique<Obstacle>(-150.f, -150.f, 120.f, 3.f)); // south fence
+    objects_.push_back(std::make_unique<Obstacle>(-150.f, -50.f, 120.f, 3.f));  // north fence
+    objects_.push_back(std::make_unique<Obstacle>(-210.f, -100.f, 3.f, 80.f));  // west fence
+    objects_.push_back(std::make_unique<Obstacle>(-90.f,  -100.f, 3.f, 80.f));  // east fence except gate gap
+
+    // Castle fence (gate at 0,100)
+    objects_.push_back(std::make_unique<Obstacle>(-60.f, 140.f, 120.f, 3.f)); // north wall
+    objects_.push_back(std::make_unique<Obstacle>(-60.f, 60.f, 120.f, 3.f));  // south wall
+    objects_.push_back(std::make_unique<Obstacle>(-120.f, 100.f, 3.f, 80.f)); // west wall
+    objects_.push_back(std::make_unique<Obstacle>(120.f, 100.f, 3.f, 80.f));  // east wall
+
+    // Smelter fence (gate at 110,-120)
+    objects_.push_back(std::make_unique<Obstacle>(80.f, -150.f, 120.f, 3.f)); // south
+    objects_.push_back(std::make_unique<Obstacle>(80.f, -70.f, 120.f, 3.f));  // north
+    objects_.push_back(std::make_unique<Obstacle>(40.f, -110.f, 3.f, 80.f));  // west
+    objects_.push_back(std::make_unique<Obstacle>(160.f,-110.f, 3.f, 80.f));  // east
+
+
+
+
+
+
     // --------------------------------------------------
     //  GATES (ONLY THESE BLOCK INSIDE)
     // --------------------------------------------------
