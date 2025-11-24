@@ -47,7 +47,7 @@ private:
     float sizeTimer_ = 0.f;
     bool enlarged_ = false;
 
-    float maxSpeed_ = 20.f;
+    float maxSpeed_ = 30.f;
     float acceleration_ = 15.f;
     float brakeDeceleration_ = 25.f;
     float friction_ = 5.f;

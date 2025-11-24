@@ -72,11 +72,11 @@ void World::reset() {
      objects_.push_back(std::make_unique<Obstacle>(50.f, 150.f, 1.f, 50.5f)); // west wall
      objects_.push_back(std::make_unique<Obstacle>(-35.f, 150.f, 1.f, 50.5f));  // east wall
     //
-    // // Smelter fence (gate at 110,-120)
-    // objects_.push_back(std::make_unique<Obstacle>(80.f, -150.f, 120.f, 3.f)); // south
-    // objects_.push_back(std::make_unique<Obstacle>(80.f, -70.f, 120.f, 3.f));  // north
-    // objects_.push_back(std::make_unique<Obstacle>(40.f, -110.f, 3.f, 80.f));  // west
-    // objects_.push_back(std::make_unique<Obstacle>(160.f,-110.f, 3.f, 80.f));  // east
+    // Smelter fence (gate at 110,-120)
+     objects_.push_back(std::make_unique<Obstacle>(110.f, -110.f, 0.5f, 4.5f)); // south
+     objects_.push_back(std::make_unique<Obstacle>(110.f, -160.f, 0.5f, 35.f));  // north
+     objects_.push_back(std::make_unique<Obstacle>(155.f, -105.f, 45.f, 0.5f));  // west
+     objects_.push_back(std::make_unique<Obstacle>(155.f,-195.f, 45.f, 0.5f));  // east
 
 
 
