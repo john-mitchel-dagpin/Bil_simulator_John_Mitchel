@@ -255,6 +255,9 @@ int main() {
         // Save gate orientation
         d.vertical = vertical;
 
+
+
+
         if (!vertical) {
             // --------------------------------------------------
             // HORIZONTAL GATE
@@ -275,6 +278,9 @@ int main() {
 
             d.baseL = d.left->position.z;
             d.baseR = d.right->position.z;
+
+            d.left->rotation.y  = math::PI / 2;
+            d.right->rotation.y = math::PI / 2;
         }
 
         d.doorZ = z;
@@ -361,11 +367,11 @@ int main() {
     };
 
     std::vector<BuildingPlacement> placements = {
-            {villageModel,  {-150.f, -10.f, -150.f}, {60.f, 60.f, 60.f}},
-            {villageModel,  {-150.f, -10.f, -100.f}, {60.f, 60.f, 60.f}},
-            {mountainModel, {-200.f, -12.f,  100.f}, {150.f,150.f,150.f}},
-            {castleModel,   {   5.f, -12.f, 150.f},  {80.f, 80.f, 80.f}},
-            {archeryModel,  { 150.f,  -5.f, 150.f},  {60.f, 60.f, 60.f}},
+            {villageModel,  {-150.f, -12.f, -150.f}, {60.f, 60.f, 60.f}},
+            {villageModel,  {-150.f, -12.f, -100.f}, {60.f, 60.f, 60.f}},
+            {mountainModel, {-200.f, -14.f,  100.f}, {150.f,150.f,150.f}},
+            {castleModel,   {   5.f, -15.f, 150.f},  {80.f, 80.f, 80.f}},
+            {archeryModel,  { 150.f,  -13.f, 150.f},  {60.f, 60.f, 60.f}},
             {smelterModel,  { 150.f, -15.f,-150.f},  {80.f, 80.f, 80.f}},
     };
 
