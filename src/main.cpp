@@ -69,12 +69,22 @@ public:
                 // Reset doors
                 gate1.openAmount = gate2.openAmount = gate3.openAmount = 0.f;
 
-                gate1.left->position.x  = gate1.baseL;
-                gate1.right->position.x = gate1.baseR;
-                gate2.left->position.x  = gate2.baseL;
-                gate2.right->position.x = gate2.baseR;
-                gate3.left->position.x  = gate3.baseL;
-                gate3.right->position.x = gate3.baseR;
+                auto resetGate = [&](DoorSet& g) {
+                    if (!g.vertical) {
+                        // horizontal gate resets on X
+                        g.left->position.x  = g.baseL;
+                        g.right->position.x = g.baseR;
+                    } else {
+                        // vertical gate resets on Z
+                        g.left->position.z  = g.baseL;
+                        g.right->position.z = g.baseR;
+                    }
+                };
+
+                resetGate(gate1);
+                resetGate(gate2);
+                resetGate(gate3);
+
 
                 // Reset portal state
                 portalTriggered = false;
@@ -234,24 +244,39 @@ int main() {
     auto makeDoor = [&](float x, float z, bool vertical) {
         DoorSet d;
 
-        d.left  = Mesh::create(BoxGeometry::create(5.f, 7.f, 0.5f), doorMat);
-        d.right = Mesh::create(BoxGeometry::create(5.f, 7.f, 0.5f), doorMat);
+        // Each door panel
+        float doorWidth  = 5.f;
+        float doorHeight = 7.f;
+        float doorDepth  = 0.5f;
+
+        d.left  = Mesh::create(BoxGeometry::create(doorWidth, doorHeight, doorDepth), doorMat);
+        d.right = Mesh::create(BoxGeometry::create(doorWidth, doorHeight, doorDepth), doorMat);
+
+        // Save gate orientation
+        d.vertical = vertical;
 
         if (!vertical) {
-            // horizontal gate (doors slide apart on X-axis)
+            // --------------------------------------------------
+            // HORIZONTAL GATE
+            // (castle gate: sliding left/right on X axis)
+            // --------------------------------------------------
             d.left->position.set(x - 3.f, 2.f, z);
             d.right->position.set(x + 3.f, 2.f, z);
+
             d.baseL = d.left->position.x;
             d.baseR = d.right->position.x;
         } else {
-            // vertical gate (doors slide apart on Z-axis)
+            // --------------------------------------------------
+            // VERTICAL GATE
+            // (village + smelter: sliding forward/back on Z axis)
+            // --------------------------------------------------
             d.left->position.set(x, 2.f, z - 3.f);
             d.right->position.set(x, 2.f, z + 3.f);
+
             d.baseL = d.left->position.z;
             d.baseR = d.right->position.z;
         }
 
-        d.vertical = vertical;   // ADD THIS FIELD TO DoorSet
         d.doorZ = z;
 
         scene.add(d.left);
@@ -262,10 +287,12 @@ int main() {
 
 
 
+
     // align with World.cpp gates
-    DoorSet gate1 = makeDoor(-120.f, -125.f, false); // left-right
-    DoorSet gate2 = makeDoor(   0.f,  100.f, true);  // vertical front-back
-    DoorSet gate3 = makeDoor( 110.f, -120.f, false); // left-right
+    DoorSet gate1 = makeDoor(-120.f, -125.f, true);   // village = vertical
+    DoorSet gate2 = makeDoor(   0.f,  100.f, false);  // castle = horizontal
+    DoorSet gate3 = makeDoor( 110.f, -120.f, true);   // smelter = vertical
+
 
 
 
@@ -408,32 +435,33 @@ int main() {
         rlWheel->rotation.x += spin;
         rrWheel->rotation.x += spin;
 
-        // --- Door opening logic based on world gates ---
-        float openDist = 4.f;
+        //-----------------------------------------------------------
+        // GATE DOOR OPENING SYNCHRONIZED WITH WORLD.CPP LOGIC
+        //-----------------------------------------------------------
+        float openSpeed = dt * 1.5f;   // nice smooth opening
+        float openDist  = 6.f;         // how far doors slide apart
 
-        if (!gate1.vertical) {
-            gate1.left->position.x  = gate1.baseL - gate1.openAmount * openDist;
-            gate1.right->position.x = gate1.baseR + gate1.openAmount * openDist;
-        } else {
-            gate1.left->position.z  = gate1.baseL - gate1.openAmount * openDist;
-            gate1.right->position.z = gate1.baseR + gate1.openAmount * openDist;
-        }
+        auto syncGate = [&](DoorSet& gate, bool worldGateIsOpen) {
 
-        if (!gate2.vertical) {
-            gate2.left->position.x  = gate2.baseL - gate2.openAmount * openDist;
-            gate2.right->position.x = gate2.baseR + gate2.openAmount * openDist;
-        } else {
-            gate2.left->position.z  = gate2.baseL - gate2.openAmount * openDist;
-            gate2.right->position.z = gate2.baseR + gate2.openAmount * openDist;
-        }
+            // Smooth approach: openAmount approaches 1 if open, 0 if closed
+            float target = worldGateIsOpen ? 1.f : 0.f;
+            gate.openAmount += (target - gate.openAmount) * openSpeed;
 
-        if (!gate3.vertical) {
-            gate3.left->position.x  = gate3.baseL - gate3.openAmount * openDist;
-            gate3.right->position.x = gate3.baseR + gate3.openAmount * openDist;
-        } else {
-            gate3.left->position.z  = gate3.baseL - gate3.openAmount * openDist;
-            gate3.right->position.z = gate3.baseR + gate3.openAmount * openDist;
-        }
+            if (!gate.vertical) {
+                // Horizontal door (slides on X)
+                gate.left->position.x  = gate.baseL - gate.openAmount * openDist;
+                gate.right->position.x = gate.baseR + gate.openAmount * openDist;
+            } else {
+                // Vertical door (slides on Z)
+                gate.left->position.z  = gate.baseL - gate.openAmount * openDist;
+                gate.right->position.z = gate.baseR + gate.openAmount * openDist;
+            }
+        };
+
+        // Sync with WORLD state:
+        syncGate(gate1, world.gate1IsOpen());
+        syncGate(gate2, world.gate2IsOpen());
+        syncGate(gate3, world.gate3IsOpen());
 
 
         // --- Hide collected pickups ---

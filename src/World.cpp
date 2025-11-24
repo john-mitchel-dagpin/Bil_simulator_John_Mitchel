@@ -36,7 +36,7 @@ void World::reset() {
 
     // Gate 1 pickups (village)
     addPickup(Pickup::Type::SpeedBoost, -100.f, -100.f, gate1PickupA_);
-    addPickup(Pickup::Type::SizeChange, -100.f,  80.f, gate1PickupB_);
+    addPickup(Pickup::Type::SizeChange, -100.f,  -80.f, gate1PickupB_);
 
     // Gate 2 pickups (castle)
     addPickup(Pickup::Type::SpeedBoost,   0.f, 90.f, gate2PickupA_);
