@@ -248,8 +248,8 @@ int main() {
     };
 
     // Village fence
-    scene.add(makeFence(-120.f, -165.f, 1.f, 60.f)); // south
-    scene.add(makeFence(-120.f, -100.f, 1.f, 50.f));  // north
+    scene.add(makeFence(-120.f, -158.f, 1.f, 55.f)); // south
+    scene.add(makeFence(-120.f, -92.f, 1.f, 55.f));  // north
     scene.add(makeFence(-160.f, -185.f, 80.f, 1.f));  // west
     scene.add(makeFence(-160.f,  -65.f, 80.f, 1.f));  // east
 
@@ -261,10 +261,10 @@ int main() {
 
     // Smelter fence
 
-    scene.add(makeFence(5.f, 5.f, 10.f, 1.f)); // north
-    scene.add(makeFence(5.f, 5.f, 10.f, 1.f)); // south
-    scene.add(makeFence(5.f, 5.f,1.f,10.f));    // west
-    scene.add(makeFence(5.f,5.f,1.f,10.f));      // east
+    scene.add(makeFence(110.f, -110.f, 1.f, 9.f)); // north
+    scene.add(makeFence(110.f, -160.f, 1.f, 70.f)); // south
+    scene.add(makeFence(155.f, -105.f,90.f,1.f));    // west
+    scene.add(makeFence(155.f,-195.f,90.f,1.f));      // east
 
 
 
