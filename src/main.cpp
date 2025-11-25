@@ -416,13 +416,14 @@ int main() {
         std::shared_ptr<Group> model;
         Vector3 position;
         Vector3 scale;
+        Vector3 rotation;
     };
 
     std::vector<BuildingPlacement> placements = {
-            {villageModel,  {-150.f, -11.f, -150.f}, {60.f, 60.f, 60.f}},
-            {villageModel,  {-150.f, -11.f, -100.f}, {60.f, 60.f, 60.f}},
+            {villageModel,  {-150.f, -11.f, -150.f}, {60.f, 60.f, 60.f},{0,180,0}},
+            {villageModel,  {-150.f, -11.f, -100.f}, {60.f, 60.f, 60.f},{0,180,0}},
             {mountainModel, {-180.f, -14.f,  100.f}, {150.f,150.f,150.f}},
-            {castleModel,   {   5.f, -15.f, 150.f},  {80.f, 80.f, 80.f}},
+            {castleModel,   {   5.f, -15.f, 150.f},  {80.f, 80.f, 80.f},{0,-90,0}},
             {archeryModel,  { 150.f,  -13.f, 150.f},  {60.f, 60.f, 60.f}},
             {smelterModel,  { 150.f, -15.f,-150.f},  {80.f, 80.f, 80.f}},
     };
@@ -432,6 +433,12 @@ int main() {
         auto obj = bp.model->clone();
         obj->position.copy(bp.position);
         obj->scale.copy(bp.scale);
+        obj->rotation.set(
+            threepp::math::degToRad(bp.rotation.x),
+            threepp::math::degToRad(bp.rotation.y),
+            threepp::math::degToRad(bp.rotation.z)
+
+            );
         scene.add(obj);
     }
 
