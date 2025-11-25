@@ -1,10 +1,8 @@
 #include <threepp/threepp.hpp>
 #include <threepp/loaders/OBJLoader.hpp>
-
 #include "Game.hpp"
 #include "Pickup.hpp"
 #include "Obstacle.hpp"
-
 #include <vector>
 #include <memory>
 #include <algorithm>
@@ -39,6 +37,8 @@ public:
     DoorSet& gate2;
     DoorSet& gate3;
     bool& portalTriggered;
+    std::shared_ptr<Mesh> endScreen;
+
 
     KeyHandler(InputState& i,
                Game& g,
@@ -46,14 +46,17 @@ public:
                DoorSet& g1,
                DoorSet& g2,
                DoorSet& g3,
-               bool& portalFlag)
+               bool& portalFlag,
+               std::shared_ptr<Mesh> endScreenMesh)
+
             : input(i),
               game(g),
               objectMeshes(meshes),
               gate1(g1),
               gate2(g2),
               gate3(g3),
-              portalTriggered(portalFlag) {}
+              portalTriggered(portalFlag),
+              endScreen(endScreenMesh) {}
 
     void onKeyPressed(KeyEvent evt) override {
         switch (evt.key) {
@@ -80,6 +83,8 @@ public:
                         g.right->position.z = g.baseR;
                     }
                 };
+                endScreen->visible = false;
+
 
                 resetGate(gate1);
                 resetGate(gate2);
@@ -132,6 +137,10 @@ int main() {
             .antialiasing(4);
 
     Canvas canvas(params);
+
+
+
+
 
     GLRenderer renderer(canvas.size());
     renderer.autoClearColor = true;
@@ -351,6 +360,31 @@ int main() {
 
 
 
+    // ------------------------------------
+    // End screen when hit hidden portal
+    // ------------------------------------
+
+    auto endTexture = TextureLoader().load("objmodels/textures/cloud_sky.png");
+    auto endMat = MeshBasicMaterial::create({{"map", endTexture}});
+    endMat->transparent = true;
+
+    auto endScreen = Mesh::create(
+        PlaneGeometry::create(200, 120),   // big enough to fill view
+        endMat
+    );
+
+    // Position high above the world so it stays out of normal view
+    endScreen->position.set(0, 200, 0);
+
+    // Face downward (toward god view camera)
+    endScreen->rotation.x = -threepp::math::PI / 2;
+
+    endScreen->visible = false;
+    scene.add(endScreen);
+
+
+
+
 
 
 
@@ -456,7 +490,8 @@ int main() {
                        gate1,
                        gate2,
                        gate3,
-                       portalTriggered);
+                       portalTriggered,
+                       endScreen);
 
     canvas.addKeyListener(handler);
 
@@ -542,6 +577,7 @@ int main() {
         if (world.portalTriggered()) {
             if (!portalTriggered) {
                 portalTriggered = true;
+                endScreen->visible = true;
 
                 // Print end message to console (always works)
                 std::cout << "The end, thanks for playing (OOP Project)" << std::endl;

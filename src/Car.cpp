@@ -26,7 +26,7 @@ void Car::update(float dt, const InputState& input) {
     if (boostTimer_ > 0) {
         boostTimer_ -= dt;
         if (boostTimer_ <= 0) {
-            maxSpeed_ = 20.f;
+            maxSpeed_ = 30.f;
             acceleration_ = 15.f;
         }
     }
@@ -77,7 +77,7 @@ Car::AABB Car::bounds() const {
     };
 }
 void Car::applySpeedBoost() {
-    maxSpeed_ = 40.f;
+    maxSpeed_ = 50.f;
     acceleration_ = 25.f;
     boostTimer_ = 5.f; // lasts 5 seconds
 }
