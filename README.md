@@ -5,43 +5,63 @@ Kandidantnummer: 10027
 ## 🎯 Prosjektbeskrivelse
 
 Dette prosjektet er en 3D bilsimulator utviklet i C++20 ved bruk av grafikkbiblioteket threepp.
-Programmet lar brukeren styre en bil i et 3D-miljø, samle opp objekter, åpne porter, navigere i en verden med bygninger, og til slutt nå en portal som avslutter spillet.
+Programmet lar brukeren styre en bil i et 3D-miljø, samle opp objekter, åpne porter, navigere i en verden med bygninger, og til slutt nå og finne den skjulte portalen som avslutter spillet.
 
 Prosjektet demonstrerer sentrale prinsipper innen objektorientert design, moderne C++, kollisjonsdeteksjon, kontinuerlig spill-løkke, rendering, input-håndtering og god modulær struktur.
 
+### 📘 Hvordan bruke programmet
+
+Programmet er en enkel bilsimulator der du styrer en bil i et 3D-miljø.
+Målet er å utforske verden, plukke opp objekter, åpne porter og til slutt nå portalen for å avslutte spillet.
+
+### 🎮 Taster og kontroller
+    Tast	Funksjon
+    W	Kjør fremover
+    S	Kjør bakover / brems
+    A	Sving venstre
+    D	Sving høyre
+    R	Reset hele spillet (tilbakestill verden)
+    ESC	Avslutt (vanlig vinduslukking)
+
+### 🚗 Bilkontroll
+
+- Bilen akselererer fremover når du holder inne W.
+- Bilen bremser når du trykker S.
+- A og D roterer bilen rundt sin egen akse.
+- Forhjulene svinger uavhengig, og hjulene spinner basert på farten.
+
+### 🔑 Pickups og porter
+
+I verden ligger det ulike pickups som kan samles ved å kjøre på dem.
+Når begge pickups tilhørende en port er samlet inn, åpnes porten automatisk.
+Portene åpner seg visuelt i main.cpp (glir fra hverandre) når logikken i World registrerer at begge pickups er inaktive.
+
+### 🌀 Portal og avslutning
+
+Når du kjører inn i portalen:
+Kameraet skifter automatisk til god-view (oversiktskamera).
+Bilen slutter å motta input.
+Spillet går inn i avslutningsfasen.
+
+### ♻️ Reset (R-tasten)
+
+Når du trykker R, tilbakestilles hele verden: Bilen flyttes tilbake til startposisjon. Fart, rotasjon og størrelse blir nullstilt. Alle pickups blir aktive igjen. Alle porter lukkes.
+Portalen deaktiveres. Alle mesh-objekter i main.cpp synkroniseres med logikken i World.
+Dette kreves eksplisitt i prosjektoppgaven og er fullstendig implementert.
+
+### 🖼️ 3D-modeller og miljø
+
+Spillet inkluderer flere ferdigmodellerte obj-modeller:
+- Landsby
+- Smelteverk
+- Slott
+- Fjell
+- Gjerder
+- Portaler og dører
+- Teksturer lastes fra objmodels/textures/.
 
 
-## 🛠️ Hovedfunksjonalitet
-
-## 🚗 Bilkontroll
-
- - Fremover/bakover-bevegelse (W/S)
-
- - Rotasjon venstre/høyre (A/D)
-
- - Hjul som roterer basert på fart
-
- - Forhjul følger rattutslag
-
- - Smooth lerping av styring og kamera
-
-
-
-## 🔑 Objektinteraksjon
-
- - Pickups som ligger spredt i verden
-
- - Når bilen treffer en pickup:
-
- - Den deaktiveres i logikken
-
- - Den skjules visuelt
-
- - Den kan åpne porter (avhengig av World.cpp-logikken)
-
-
-
-## 🏞️ Miljø & Verden
+### 🏞️ Miljø & Verden
 
  - Flatt plan med teksturert steinsti
 
@@ -64,37 +84,6 @@ Prosjektet demonstrerer sentrale prinsipper innen objektorientert design, modern
  - Slottport (horisontal sliding)
 
  - Smelteverkport (vertikal sliding)
-
-
-
-## 🌀 Portal
-
- - Når World.logikken rapporterer at portalen aktiveres:
-
- - Kamera går til god-view (top-down)
-
- - Brukeren mister kontroll over bilen
-
- - Spillet er i avslutningsfase
-
-
-
-## ♻️ Reset System (R-tast)
-
-- Tilbakestiller:
-
- - Bilen
-
- - Dører
-
- - Pickups
-
- - Portal-tilstand
-
- - Kamera og objektmesh-synlighet
-
- - Dette kreves i oppgaven og er implementert.
-
 
 
 ## 📂 Prosjektstruktur
