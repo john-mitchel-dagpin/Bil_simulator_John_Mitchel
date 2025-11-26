@@ -418,6 +418,7 @@ Game er toppnivåklassen som styrer hele simulasjonen
 
 - Bevegelsen er kun i x og z planet. Kunne utviklet det slik at bilen kunne bevege 3 dimensjonalt. For eksempel kjøre opp et fjell eller en rampe, falle av fra en klippe, ha tyngdekraften i spillet. 
 
+
 ## 📜 Kilder & Ressurser
 
 - threepp (MIT lisens) – https://github.com/markaren/threepp
@@ -425,4 +426,9 @@ Game er toppnivåklassen som styrer hele simulasjonen
 - Enkel gratis-modellering/tekstur fra åpne ressursbibliotek
 
 - Obj og mtl som ble brukt https://kenney.nl/assets/hexagon-kit
+
+### 🗂️ Versjonskontroll (Git)
+
+Prosjektet er utviklet med Git som versjonskontrollsystem.
+Alle endringer er versjonert fortløpende gjennom utviklingsprosessen i et GitHub-repositorium, med regelmessige commits etter hvert som funksjoner ble implementert og forbedret.
 
