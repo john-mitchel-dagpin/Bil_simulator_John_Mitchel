@@ -304,7 +304,7 @@ Et enkelt struktur-objekt som lagrer spillerens input.
 
 Inneholder:
 
-Fire bools:
+4 bools:
 - accelerate
 - brake
 - turnLeft
@@ -358,6 +358,7 @@ Prosjektet inneholder enhetstester for:
 - God bruk av moderne C++: smartpekere, lambdas, auto, referanser
 
 - Koden er ryddig og oversiktlig
+
 
 ### 👎 Hva kunne vært bedre
 

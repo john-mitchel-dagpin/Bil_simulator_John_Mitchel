@@ -64,6 +64,11 @@ target_link_libraries(Bil_simulator_John_Mitchel
 
 add_executable(bilsim_tests
         tests/test_car.cpp
+        tests/test_pickup.cpp
+        tests/test_gameobject.cpp
+        tests/test_world.cpp
+        tests/test_collision.cpp
+        tests/test_game.cpp
 )
 
 target_link_libraries(bilsim_tests
@@ -71,3 +76,7 @@ target_link_libraries(bilsim_tests
         bilsim_core
         Catch2::Catch2WithMain
 )
+
+include(CTest)
+
+add_test(NAME test_all COMMAND bilsim_tests)

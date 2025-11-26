@@ -133,6 +133,9 @@ void World::update(float dt, const InputState& input) {
     // collisions
     for (auto& obj : objects_) {
         if (obj->isActive() && intersects(carB, obj->bounds())) {
+
+            car_.setSpeed(0.f);
+
             obj->onCarOverlap(car_);
         }
     }

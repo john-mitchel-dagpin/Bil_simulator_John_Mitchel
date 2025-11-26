@@ -21,6 +21,8 @@ public:
 
     void setPosition(float x, float z);
     void setRotation(float angle);
+    void setSpeed(float s) { speed_ = s; }
+
 
     Vec2 position() const { return position_; }
     float rotation() const { return rotation_; }
