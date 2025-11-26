@@ -1,210 +1,388 @@
-# 🚗 Bilsimulator – NTNU Ålesund
-**Candidate Number:** 
+# Bilsimulator (Threepp-prosjekt)
 
-A simple 3D bilsimulator built with **modern C++20** and **threepp**, demonstrating  
-object-oriented design, physics, collision detection, pickups, obstacles,  
-unit tests, and real-time rendering.
+Kandidantnummer: 10027
 
-This project is delivered individually as part of the course  
-**Automatisering og intelligente systemer **.
+## 🎯 Prosjektbeskrivelse
 
----
+Dette prosjektet er en 3D bilsimulator utviklet i C++20 ved bruk av grafikkbiblioteket threepp.
+Programmet lar brukeren styre en bil i et 3D-miljø, samle opp objekter, åpne porter, navigere i en verden med bygninger, og til slutt nå en portal som avslutter spillet.
 
-## 📦 Features
-
-### ✅ **Car physics (bicycle model)**
-- Smooth acceleration / braking
-- Drag force
-- Max speed limits
-- Steering with rate-limit
-- Realistic turning using the **bicycle model**
-
-### ✅ **Visual car model**
-- Car body (box geometry)
-- 4 wheels (cylinders)
-- Front wheels turn visually
-- Wheels spin depending on speed
-- Wheels are child objects of the car body
-
-### ✅ **3D Environment**
-- Large plane "ground"
-- Obstacles
-- Rotating camera that follows the car
-- Simple lighting
-
-### ✅ **Pickups**
-Two pickup types:
-- **Speed boost** → increases car max speed
-- **Growth boost** → increases car size
-
-Pickups disappear when collected.
-
-### ✅ **Collisions**
-- Car ↔ pickups
-- Car ↔ obstacles
-- Simple pushback response
-
-### ✔️ **Unit Tests**
-Uses Catch2:
-- Physics movement
-- Collision correctness
-
-### ✔️ **Build system**
-- CMake
-- FetchContent for dependencies
-- C++20
-- Runs on Windows (tested)
-
----
-
-## 🕹️ Controls
-
-| Key | Action |
-|-----|--------|
-| **W** | Accelerate forward |
-| **S** | Brake / reverse |
-| **A** | Steer left |
-| **D** | Steer right |
-| **R** | Reset car position |
-| **ESC** | Close the window |
-
----
-
-## 📁 File Structure
-
-Bil_simulator_John_Mitchel/ 
-
-├── src/ 
-
-    │ ├── Car.hpp
-
-    │ ├── Car.cpp
-
-    │ ├── Game.hpp
-
-    │ ├── Game.cpp
-
-    │ ├── physics.hpp
-
-    │ └── main.cpp
+Prosjektet demonstrerer sentrale prinsipper innen objektorientert design, moderne C++, kollisjonsdeteksjon, kontinuerlig spill-løkke, rendering, input-håndtering og god modulær struktur.
 
 
-├── tests/
 
-    │ └── test_physics.cpp
+## 🛠️ Hovedfunksjonalitet
 
-├── docs/
+## 🚗 Bilkontroll
 
-    │ └── UML_Class_Diagram.pdf
+ - Fremover/bakover-bevegelse (W/S)
+
+ - Rotasjon venstre/høyre (A/D)
+
+ - Hjul som roterer basert på fart
+
+ - Forhjul følger rattutslag
+
+ - Smooth lerping av styring og kamera
 
 
-├── CMakeLists.txt
 
-├── README.md
+## 🔑 Objektinteraksjon
 
-└── .gitignore
+ - Pickups som ligger spredt i verden
+
+ - Når bilen treffer en pickup:
+
+ - Den deaktiveres i logikken
+
+ - Den skjules visuelt
+
+ - Den kan åpne porter (avhengig av World.cpp-logikken)
 
 
----
 
-## 🧠 Design Principles 
+## 🏞️ Miljø & Verden
 
-### ✔ Abstraction
-Each subsystem (Car physics, Game logic, Rendering) is separated into its own class.
+ - Flatt plan med teksturert steinsti
 
-### ✔ Encapsulation
-Internal state (e.g., speed, steering angle) is private to `Car` and updated through methods.
+ - 3D-modeller lastet via OBJLoader:
 
-### ✔ Cohesion
-Each class has **one clear responsibility**:
-- `Car` → physics & movement
-- `Game` → world, rendering, input & high-level logic
-- `main.cpp` → connects Game with threepp
+ - Landsbyhus
 
-### ✔ Low Coupling
-`Car` has **no dependency** on threepp.  
-`Game` uses `Car` purely through its interface.
+ - Slott
 
-### ✔ Responsibility-Driven Design
-The car updates its own physics;  
-Game handles objects, pickups, collisions and rendering.
+ - Smelteverk
 
----
+ - Fjellmodell
 
-## 🔧 Building the Project
+ - Fysiske gjerder laget av bokser
 
-### Requirements
-- CMake 3.15+
-- C++20 compiler (MSVC, Clang or GCC)
+ - Tre store porter (doble dører)
+
+ - Landsbyport (vertikal sliding)
+
+ - Slottport (horisontal sliding)
+
+ - Smelteverkport (vertikal sliding)
+
+
+
+## 🌀 Portal
+
+ - Når World.logikken rapporterer at portalen aktiveres:
+
+ - Kamera går til god-view (top-down)
+
+ - Brukeren mister kontroll over bilen
+
+ - Spillet er i avslutningsfase
+
+
+
+## ♻️ Reset System (R-tast)
+
+- Tilbakestiller:
+
+ - Bilen
+
+ - Dører
+
+ - Pickups
+
+ - Portal-tilstand
+
+ - Kamera og objektmesh-synlighet
+
+ - Dette kreves i oppgaven og er implementert.
+
+
+
+## 📂 Prosjektstruktur
+src/
+├─ main.cpp
+
+├─ Game.hpp / Game.cpp
+
+├─ World.hpp / World.cpp
+
+├─ Car.hpp / Car.cpp
+
+├─ Pickup.hpp / Pickup.cpp
+
+├─ Obstacle.hpp / Obstacle.cpp
+
+objmodels/
+
+├─ building-village.obj
+
+├─ building-castle.obj
+
+├─ building-smelter.obj
+
+├─ stone-mountain.obj
+
+└─ textures/stonepath.png /cloud_sky.png
+
+tests/
+
+└─ (Catch2 enhetstester)
+
+CMakeLists.txt
+
+README.md
+
+
+## UML-Diagram
+
+    +--------------------+
+    |       Game         |
+    +--------------------+
+    | - world : World    |
+    +--------------------+
+    | + update()         |
+    | + reset()          |
+    +---------+----------+
+    |
+    | has
+    v
+    +--------------------+
+    |       World        |
+    +--------------------+
+    | - car : Car        |
+    | - objects : vector |
+    +--------------------+
+    | + update()         |
+    | + reset()          |
+    | + gate1IsOpen()    |
+    | + gate2IsOpen()    |
+    | + gate3IsOpen()    |
+    +---------+----------+
+    |
+    | contains
+    v
+    +--------------+
+    |     Car      |
+    +--------------+
+    | position     |
+    | rotation     |
+    | speed        |
+    +--------------+
+    | + update()   |
+    +--------------+
+
+          World contains many GameObject
+                |
+                v
+      +--------------------+
+      |    GameObject      |
+      +--------------------+
+      | (abstract class)   |
+      +--------------------+
+      | + bounds()         |
+      | + isActive()       |
+      +---------+----------+
+                |
+      ---------------------
+      |                   |
+      v                   v
+    
+    +----------------+   +----------------+
+    |    Pickup      |   |    Obstacle    |
+    +----------------+   +----------------+
+    | + onCollected()|   | (no extra)     |
+    +----------------+   +----------------+
+    
+    
+    +--------------------+
+    |    InputState      |
+    +--------------------+
+    | accelerate : bool  |
+    | brake : bool       |
+    | turnLeft : bool    |
+    | turnRight : bool   |
+    +--------------------+
+
+## 📘 Forklaring av UML-diagram 
+### 1. Game
+
+Game er den øverste spillkontrolleren.
+Inneholder:
+- Ett World-objekt
+
+Ansvar:
+- update() oppdaterer spilltilstanden hver frame
+- reset() tilbakestiller spillet når brukeren trykker R
+
+Hvorfor klassen finnes:
+
+- For å skille spilllogikk fra visualisering, og gi en ryddig programstruktur.
+
+### 2. World
+
+World er selve simuleringslaget som styrer alt som finnes i spillverdenen.
+
+Inneholder:
+- Car
+- En liste med GameObject-pekere
+- Noen er Pickup
+- Noen er Obstacle
+- Tilstandsvariabler for dører (gate1, gate2, gate3)
+- Portal-utløser
+
+Ansvar:
+- update() → oppdaterer bilfysikk, kollisjoner, pickups
+- reset() → nullstiller hele verden 
+- gate1IsOpen(), gate2IsOpen(), gate3IsOpen() → brukes av main.cpp for å åpne dører
+
+Hvorfor klassen finnes:
+- For å samle all simuleringslogikk på ett sted og holde main.cpp ren.
+
+### 3. Car
+En enkel modell av kjøretøybevegelse.
+
+Inneholder:
+  -  position
+  -  rotation
+  -  speed
+  -  Ansvar:
+  -  Beveger seg frem/bak basert på InputState
+  -  Rotasjon 
+  -  Enkel friksjon
+
+Hvorfor klassen finnes:
+
+- For å isolere reglene for bevegelse og gjøre koden mer oversiktlig.
+
+### 4. GameObject (abstrakt baseklasse)
+
+En virtuell baseklasse for alle objekter som bilen kan kollidere med eller plukke opp.
+
+Inneholder:
+
+- Virtuelle metoder: bounds(), isActive()
+
+Hvorfor klassen finnes:
+
+- For å kunne behandle alle objekter likt uansett type, via polymorfisme.
+
+### 5. Pickup : GameObject
+
+Et plukkbart objekt.
+
+Inneholder:
+
+- Variabel for aktiv/inaktiv tilstand
+
+Ansvar:
+- onCollected() deaktiverer objektet
+- World og main.cpp bruker dette for å åpne dører, aktivere portal, skjule mesh-en osv.
+
+Hvorfor klassen finnes:
+
+- For å gi spillinteraksjon og progresjon.
+
+
+### 6. Obstacle : GameObject
+
+Et hinder som blokkerer bilen.
+
+Inneholder:
+- Kun en kollisjonsboks
+
+Ansvar:
+
+- Gir kollisjon uten ekstra logikk
+
+Hvorfor klassen finnes:
+
+- For å skape hindringer i miljøet.
+
+
+### 7. InputState
+
+Et enkelt struktur-objekt som lagrer spillerens input.
+
+Inneholder:
+
+Fire bools:
+- accelerate
+- brake
+- turnLeft
+- turnRight
+
+Ansvar:
+- KeyHandler skriver inn input
+- Car og Game leser det 
+
+Hvorfor klassen finnes:
+
+For å skille input fra simuleringslogikk på en ren måte.
+
+
+## 🔧 Bygging og kjøring
+- CMake 3.14+
+
+- Compiler med støtte for C++20
+
 - Git
-- Internet connection (FetchContent clones libraries)
 
-### Build steps (CLion)
-1. Open the project folder in CLion
-2. CLion will automatically run CMake
-3. Select target: **bilsim**
-4. Run ▶️
-
----
-
-## 🧪 Running Unit Tests
-
-Build and run target:
-
-    test_physics
-
-Includes tests for:
-- forward movement
-- collision logic
-
----
-
-## 🧭 UML Diagram
-
-The UML diagram is stored in:
-    docs/UML_Class_Diagram.pdf
+- Ingen ekstra avhengigheter — threepp lastes automatisk via FetchContent
 
 
-It contains:
-- Car class
-- Game class
-- Pickup struct
-- Obstacle struct
+## 🧪 Enhetstester (Catch2)
 
----
+Prosjektet inneholder enhetstester for:
 
-## 📝 Reflection
+- Bilens fysikk-funksjoner (fart, rotasjon)
 
-### What I am satisfied with
-- Learned how to use **threepp**, CMake, Git, and unit tests in one project
-- Implemented realistic physics (bicycle model)
-- Clean structure separating logic and rendering
-- All mandatory features implemented + several extras
+- Pickup-aktivitet & deaktivering
 
-### What could be improved
-- More realistic collision handling (bounding boxes, sweep tests)
-- Better visual assets (3D models instead of primitives)
-- More advanced UI (speedometer, minimap)
-
-### What I learned
-- Organizing a C++ project with many files
-- Understanding transformation hierarchies (mesh parenting)
-- GitHub workflow
-- Debugging compiler & linker errors
-- Real-time rendering with event loops
-
----
-
-## 🔗 GitHub Repository
-
-https://github.com/john-mitchel-dagpin/Bil_simulator_John_Mitchel
-
----
-
-## 📦 License
-
-Free for educational use.
+- Verden sin logikk (porter åpnes riktig)
 
 
 
+## 🧠 Designvalg & Refleksjon 👍 Hva jeg er fornøyd med
+
+- God klasseinndeling: Car, World, Pickup, Obstacle, Game
+
+- Spillogikk og rendering er godt separert
+
+- Enkel å bygge for sensor (FetchContent, ingen kompliserte paths)
+
+- Port-logikken med smooth sliding fungerer godt
+
+- Portal-end-state gir en tydelig slutt
+
+- Reset-systemet fungerer 100%
+
+- God bruk av moderne C++: smartpekere, lambdas, auto, referanser
+
+- Koden er ryddig og oversiktlig
+
+### 👎 Hva kunne vært bedre
+
+- Kollisjonsdeteksjon er enkel (AABB)
+
+- Ingen avansert fysikk (friksjon, momentum osv.)
+
+- UI kunne vært bedre med ImGui
+
+- Portal-slutten kunne hatt bedre visuell feedback (tekst, overlays)
+
+- Flere tester hadde styrket robusthet
+
+- CI/CD workflow kunne vært lagt inn (GitHub Actions)
+
+
+
+
+
+
+## 📜 Kilder & Ressurser
+
+- threepp (MIT lisens) – https://github.com/markaren/threepp
+
+- Enkel gratis-modellering/tekstur fra åpne ressursbibliotek
+
+- Obj og mtl som ble brukt https://kenney.nl/assets/hexagon-kit
 
