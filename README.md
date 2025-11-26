@@ -331,53 +331,103 @@ For å skille input fra simuleringslogikk på en ren måte.
 
 ## 🧪 Enhetstester (Catch2)
 
-Prosjektet inneholder enhetstester for:
+Prosjektet inneholder et sett med enhetstester implementert med Catch2 for å verifisere sentral spilllogikk. 
+Dette gjør prosjektet mer robust, og viser at logikken er testet uavhengig av grafikkmotoren. 
+Testene kjøres via CTest og ligger i tests/-mappen.
 
-- Bilens fysikk-funksjoner (fart, rotasjon)
+### ✔ Testet funksjonalitet
 
-- Pickup-aktivitet & deaktivering
+### 1. Bilens fysikk (test_car.cpp)
 
-- Verden sin logikk (porter åpnes riktig)
+Tester at:
+- Bilen akselererer når accelerate = true
+- Friksjon reduserer farten når spilleren slipper gassen
+- Bremsing fungerer (farten reduseres raskere)
+- Rotasjon og posisjon oppdateres som forventet
 
+Hvorfor er dette viktig?
+Car er kjernen av spillmekanikken. Hvis fysikken fungerer feil, fungerer hele spillet dårlig. Testene sikrer stabil og forutsigbar oppførsel.
+
+### 2. Pickup-objekter (test_pickup.cpp)
+
+Tester at:
+- En pickup deaktiveres etter at bilen kjører på den
+- Speed-boost eller size-change påvirker bilen riktig
+- Pickups rapporterer riktig aktiv/inaktiv tilstand
+
+Hvorfor er dette viktig?
+Pickups er en sentral del av progresjonen (porter og gameplay). Testene garanterer at spillet ikke låser seg pga. feil logikk.
+
+### 3. GameObject-grunnklasse (test_gameobject.cpp)
+
+Tester at:
+- Kollisjonsbokser (AABB) fungerer som forventet
+- Aktiv/deaktivert logikk oppfører seg riktig
+
+Hvorfor er dette viktig?
+GameObject er baseklassen til alt annet i verden. Hvis den er stabil, er resten mer pålitelig.
+
+### 4. World-logikk (test_world.cpp)
+
+Tester at:
+- Verden oppdaterer alle objekter og bilen
+- Pickups åpner porter riktig (når begge er samlet)
+- Gate-status rapporteres korrekt
+- Portal utløses ved kollisjon
+
+Hvorfor er dette viktig?
+World binder alt sammen. Testene verifiserer spillflyten uten å måtte starte hele hovedprogrammet.
+
+### 5. Kollisjonsdeteksjon (test_collision.cpp)
+
+Tester at:
+- Bilen stopper når den kjører inn i et hindrer (Obstacle)
+- Intersect-funksjonen fungerer som forventet
+
+Hvorfor er dette viktig?
+Kollisjon er kritisk for alle miljøobjekter. Feil her kan gjøre spillet uspillbart.
+
+### 6. Game-kontrolleren (test_game.cpp)
+
+Tester at:
+- Game.update() faktisk delegere til World.update()
+- Game.reset() nullstiller verden korrekt
+
+Hvorfor er dette viktig?
+Game er toppnivåklassen som styrer hele simulasjonen
 
 
 ## 🧠 Designvalg & Refleksjon 👍 Hva jeg er fornøyd med
 
-- God klasseinndeling: Car, World, Pickup, Obstacle, Game
+- God klasseinndeling: Car, World, GameObject, Pickup, Obstacle, Game bidrar til lav kobling og høy kohesjon.
 
-- Spillogikk og rendering er godt separert
+- Separasjon av ansvar: Rendering og spilllogikk holdes helt adskilt. World/Car styrer logikk; main.cpp styrer kun grafikk og inputs.
 
-- Enkel å bygge for sensor (FetchContent, ingen kompliserte paths)
+- Bruk av moderne C++: smartpekere (unique_ptr), lambdaer, auto, referanser og RAII.
 
-- Port-logikken med smooth sliding fungerer godt
+- Reset-systemet fungerer godt: hele spillet kan tilbakestilles uten restart.
 
-- Portal-end-state gir en tydelig slutt
+- Pickups og porter: Logikken for progresjon (samle 2 pickups → åpner en port) fungerer ryddig og er lett å utvide.
 
-- Reset-systemet fungerer 100%
+- Enhetstestene: De gir trygghet for korrekt logikk og viser god forståelse av testbar arkitektur.
 
-- God bruk av moderne C++: smartpekere, lambdas, auto, referanser
+- Koden er enkel å bygge for sensor: FetchContent laster inn alt automatisk.
 
-- Koden er ryddig og oversiktlig
+## 👎 Hva kunne vært bedre
 
+- Fysikken er enkel: Ingen momentum, akselerasjonskurver eller avansert styring.
 
-### 👎 Hva kunne vært bedre
+- Kollisjonsdeteksjon: AABB er enkelt og fungerer, men ikke optimalt for rotasjon eller komplekse modeller.
 
-- Kollisjonsdeteksjon er enkel (AABB)
+- Ingen UI (ImGui): En liten UI-overlay (HUD) kunne gjort spillet mer brukervennlig.
 
-- Ingen avansert fysikk (friksjon, momentum osv.)
+- Portal-sluttscene: Kunne hatt bedre visuelle effekter eller animert tekst.
 
-- UI kunne vært bedre med ImGui
+- CI/CD (GitHub Actions): Kunne gjort at tester kjørte automatisk ved hver commit.
 
-- Portal-slutten kunne hatt bedre visuell feedback (tekst, overlays)
+- Flere tester: Selv om dekningen er god, kunne for eksempel dør-animasjon og boost-timer vært ytterligere testet.
 
-- Flere tester hadde styrket robusthet
-
-- CI/CD workflow kunne vært lagt inn (GitHub Actions)
-
-
-
-
-
+- Bevegelsen er kun i x og z planet. Kunne utviklet det slik at bilen kunne bevege 3 dimensjonalt. For eksempel kjøre opp et fjell eller en rampe, falle av fra en klippe, ha tyngdekraften i spillet. 
 
 ## 📜 Kilder & Ressurser
 
